@@ -4,9 +4,9 @@ use crate::objects::{SearchParameters, SearchResult};
 
 pub fn search_bar(parameters: &SearchParameters) -> Markup {
     html!(
-        form action="./search" method="get" {
+        form hx-get="./search" hx-target="#search-content" hx-disabled-elt="#search-button" {
             input name="query" value=(parameters.query.as_ref().unwrap_or(&"".to_string())) placeholder="Search text" {}
-            button type="submit" { "search" }
+            button type="submit" id="search-button" { "search" }
         }
     )
 }
