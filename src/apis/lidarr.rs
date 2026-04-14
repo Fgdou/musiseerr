@@ -1,9 +1,9 @@
 use std::env;
 
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Album {
     pub id: u32,
     pub title: String,
@@ -18,7 +18,7 @@ pub struct Album {
     pub monitored: bool
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Artist {
     #[serde(rename = "artistName")]
     pub artist_name: String,
@@ -27,14 +27,14 @@ pub struct Artist {
     pub id: u32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Release {
     pub id: u32,
     #[serde(rename = "foreignReleaseId")]
     pub foreign_release_id: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Track {
     #[serde(rename = "artistId")]
     pub artist_id: u32,
@@ -69,7 +69,10 @@ pub async fn get_album(musicbrainz_id: &str) -> Option<Album> {
         .await
         .unwrap();
 
-    res.into_iter().next()
+    res.into_iter().next().map(|r| {
+        dbg!(&r);
+        r
+    })
 }
 
 pub async fn get_tracks(album_release_id: u32) -> Vec<Track> {
@@ -79,7 +82,123 @@ pub async fn get_tracks(album_release_id: u32) -> Vec<Track> {
 
     dbg!(&url);
 
-     reqwest::Client::new()
+    let res = reqwest::Client::new()
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .bearer_auth(token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    dbg!(&res);
+
+    res
+}
+
+#[derive(Serialize, Debug)]
+pub struct ArtistRequest {
+    #[serde(rename = "addOptions")]
+    pub add_options: AddOptions,
+    #[serde(rename = "foreignArtistId")]
+    pub foreign_artist_id: String,
+    #[serde(rename = "qualityProfileId")]
+    pub quality_profile_id: u32,
+    #[serde(rename = "metadataProfileId")]
+    pub metadata_profile_id: u32,
+    pub path: String,
+    #[serde(rename = "rootFolderPath")]
+    pub root_folder_path: String,
+    #[serde(rename = "artistName")]
+    pub artist_name: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct AddOptions {
+    pub monitor: String,
+    #[serde(rename = "searchForMissingAlbums")]
+    pub search_for_missing_albums: bool,
+}
+
+pub async fn add_artist(artist: ArtistRequest) {
+    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
+    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+    let url = format!("{}/api/v1/artist", env_url);
+
+    dbg!(&url, &artist);
+
+    let res = reqwest::Client::new()
+        .post(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .header("Content-Type", "application/json")
+        .json(&artist)
+        .bearer_auth(token)
+        .send()
+        .await
+        .unwrap();
+
+    if !res.status().is_success() {
+        panic!("Failed: {}", res.text().await.unwrap())
+    }
+}
+
+#[derive(Serialize, Debug)]
+struct AlbumMonitorRequest {
+    #[serde(rename = "albumIds")]
+    album_ids: Vec<u32>,
+    monitored: bool,
+}
+
+pub async fn monitor_album(lidarr_album_id: u32) {
+    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
+    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+    let url = format!("{}/api/v1/album/monitor", env_url);
+
+    let request = AlbumMonitorRequest {
+        album_ids: vec!(lidarr_album_id),
+        monitored: true,
+    };
+
+    dbg!(&url, &request);
+
+    let res = reqwest::Client::new()
+        .put(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .header("Content-Type", "application/json")
+        .bearer_auth(token)
+        .json(&request)
+        .send()
+        .await
+        .unwrap();
+
+    if !res.status().is_success() {
+        panic!("Failed: {}", res.text().await.unwrap())
+    }
+}
+
+#[derive(Deserialize)]
+pub struct DefaultsResponse {
+    pub id: u32,
+    pub path: String,
+    #[serde(rename = "defaultMetadataProfileId")]
+    pub default_metadata_profile_id: u32,
+    #[serde(rename = "defaultQualityProfileId")]
+    pub default_quality_profile_id: u32,
+}
+
+pub async fn get_defaults() -> Vec<DefaultsResponse> {
+    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
+    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+    let url = format!("{}/api/v1/rootfolder", env_url);
+
+    dbg!(&url);
+
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")

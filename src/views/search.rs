@@ -20,6 +20,7 @@ pub fn search_result(result: &SearchResult) -> Markup {
                 tr {
                     th {"Title"}
                     th {"Album"}
+                    th {"Type"}
                     th {"Artist"}
                     th {"Monitored"}
                     th {"Request"}
@@ -30,6 +31,7 @@ pub fn search_result(result: &SearchResult) -> Markup {
                     tr { 
                         td {(music.title)}
                         td {(music.album)}
+                        td {(music.album_type)}
                         td {(music.artist)}
                         td {(music.monitored)}
                         td {

@@ -15,12 +15,12 @@ pub struct SearchResult {
 pub struct Music {
     pub artist: String,
     pub title: String,
-    pub year: String,
     pub album: String,
     pub artist_id: String,
     pub album_id: String,
     pub id: String,
     pub monitored: bool,
+    pub album_type: String,
 }
 
 #[derive(Deserialize)]

@@ -1,8 +1,8 @@
-use axum::{Router, extract::Query, routing::get};
+use axum::{Form, Router, extract::Query, response::Response, routing::{get, post}};
 use dotenv::dotenv;
 use maud::{Markup, html};
 
-use crate::objects::SearchParameters;
+use crate::objects::{MusicRequest, SearchParameters};
 
 mod controllers;
 mod views;
@@ -18,10 +18,20 @@ async fn main() {
         .route("/health", get(async || {
             "OK"
         }))
-        .route("/search", get(search_controller));
+        .route("/search", get(search_controller))
+        .route("/request_music", post(request_music_controller));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn request_music_controller(req: Form<MusicRequest>) -> Response {
+    let res = controllers::request::music(&req.music_id).await;
+
+    match res {
+        Err(e) => Response::builder().status(400).body(e.into()).unwrap(),
+        _ => Response::builder().status(200).body("OK".into()).unwrap()
+    }
 }
 
 async fn search_controller(search_params: Query<SearchParameters>) -> Markup {
@@ -29,7 +39,7 @@ async fn search_controller(search_params: Query<SearchParameters>) -> Markup {
 
     let search = match (&search_params.query, search_params.max) {
         (Some(query), Some(limit)) => Some(controllers::search::search(query, limit).await),
-        (Some(query), None) => Some(controllers::search::search(query, 10).await),
+        (Some(query), None) => Some(controllers::search::search(query, 50).await),
         _ => None
     };
 
