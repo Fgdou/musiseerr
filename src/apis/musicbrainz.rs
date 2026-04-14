@@ -14,7 +14,7 @@ pub struct Recording {
     pub artist_credit: Vec<ArtistCredit>,
     #[serde(rename = "first-release-date")]
     pub first_release_date: String,
-    pub releases: Vec<Release>
+    pub releases: Vec<Release>,
 }
 #[derive(Deserialize)]
 pub struct ArtistCredit {

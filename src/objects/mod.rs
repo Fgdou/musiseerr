@@ -20,4 +20,10 @@ pub struct Music {
     pub artist_id: String,
     pub album_id: String,
     pub id: String,
+    pub monitored: bool,
+}
+
+#[derive(Deserialize)]
+pub struct MusicRequest {
+    pub music_id: String,
 }

@@ -21,6 +21,8 @@ pub fn search_result(result: &SearchResult) -> Markup {
                     th {"Title"}
                     th {"Album"}
                     th {"Artist"}
+                    th {"Monitored"}
+                    th {"Request"}
                 }
             }
             tbody {
@@ -29,6 +31,12 @@ pub fn search_result(result: &SearchResult) -> Markup {
                         td {(music.title)}
                         td {(music.album)}
                         td {(music.artist)}
+                        td {(music.monitored)}
+                        td {
+                            button disabled[music.monitored] {
+                                "Request"
+                            }
+                        }
                     }
                 }
             }

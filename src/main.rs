@@ -1,4 +1,5 @@
 use axum::{Router, extract::Query, routing::get};
+use dotenv::dotenv;
 use maud::{Markup, html};
 
 use crate::objects::SearchParameters;
@@ -10,6 +11,7 @@ mod apis;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     println!("Hello, world!");
 
     let app = Router::new()
