@@ -25,6 +25,7 @@ pub struct Artist {
     #[serde(rename = "foreignArtistId")]
     pub foreign_artist_id: String,
     pub id: u32,
+    pub monitored: bool,
 }
 
 #[derive(Deserialize, Debug)]
@@ -54,6 +55,51 @@ pub async fn get_album(musicbrainz_id: &str) -> Option<Album> {
     let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
     let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
     let url = format!("{}/api/v1/album?foreignAlbumId={}", env_url, musicbrainz_id);
+
+    dbg!(&url);
+
+    let res: Vec<_> = reqwest::Client::new()
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .bearer_auth(token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    res.into_iter().next().map(|r| {
+        dbg!(&r);
+        r
+    })
+}
+
+pub async fn get_albums_from_artist(lidarr_artist_id: u32) -> Vec<Album> {
+    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
+    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+    let url = format!("{}/api/v1/album?artistId={}", env_url, lidarr_artist_id);
+
+    dbg!(&url);
+
+    reqwest::Client::new()
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .bearer_auth(token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap()
+}
+
+pub async fn get_artist(musicbrainz_id: &str) -> Option<Artist> {
+    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
+    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+    let url = format!("{}/api/v1/artist?mbId={}", env_url, musicbrainz_id);
 
     dbg!(&url);
 
@@ -114,6 +160,7 @@ pub struct ArtistRequest {
     pub root_folder_path: String,
     #[serde(rename = "artistName")]
     pub artist_name: String,
+    pub(crate) monitored: bool,
 }
 
 #[derive(Serialize, Debug)]
@@ -153,13 +200,13 @@ struct AlbumMonitorRequest {
     monitored: bool,
 }
 
-pub async fn monitor_album(lidarr_album_id: u32) {
+pub async fn monitor_albums(lidarr_album_id: Vec<u32>) {
     let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
     let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
     let url = format!("{}/api/v1/album/monitor", env_url);
 
     let request = AlbumMonitorRequest {
-        album_ids: vec!(lidarr_album_id),
+        album_ids: lidarr_album_id,
         monitored: true,
     };
 

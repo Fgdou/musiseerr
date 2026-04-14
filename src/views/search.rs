@@ -52,6 +52,35 @@ pub fn search_result(result: &SearchResult) -> Markup {
                     }
                 }
             }
+        },
+        SearchResult::Artists(artists) => {
+            html!{
+                h1 { "Artists" }
+
+                table class="table align-middle" {
+                    thead class="sticky-top" {
+                        tr {
+                            th {"Name"}
+                            th {"Request"}
+                        }
+                    }
+                    tbody {
+                        @for artist in artists {
+                            tr { 
+                                td {(artist.name)}
+                                td {
+                                    form hx-post="/request_artist" hx-disabled-elt="find button" hx-target="this" hx-swap="outerHTML" {
+                                        button class="btn btn-secondary" type="submit" disabled[artist.monitored] {
+                                            "Request"
+                                        }
+                                        input type="hidden" value=(artist.id) name="artist_id" {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

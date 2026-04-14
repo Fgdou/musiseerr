@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use chrono::Utc;
-
 use crate::apis::{self, lidarr::{AddOptions, ArtistRequest}};
 
 pub async fn music(id: &str) -> Result<(), String> {
@@ -37,6 +35,26 @@ pub async fn music(id: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub async fn artist(id: &str) -> Result<(), String> {
+    let mbz_artist = apis::musicbrainz::get_artist(id).await;
+    let lidarr_artist = apis::lidarr::get_artist(id).await;
+
+    match lidarr_artist {
+        Some(artist) => {
+            let albums = apis::lidarr::get_albums_from_artist(artist.id).await;
+            let ids: Vec<_> = albums.into_iter().map(|a| a.id).collect();
+
+            apis::lidarr::monitor_albums(ids).await;
+
+            Ok(())
+        },
+        None => {
+            request_artist(id, &mbz_artist.name, Monitoring::All).await?;
+            Ok(())
+        }
+    }
+}
+
 enum Monitoring {
     All,
     None,
@@ -45,7 +63,7 @@ enum Monitoring {
 async fn request_artist(musicbrainz_artist_id: &str, artist_name: &str, monitoring: Monitoring) -> Result<(), String> {
     let monitor = match monitoring {
         Monitoring::All => "all",
-        Monitoring::None => "none",
+        Monitoring::None => "existing",
     };
 
     let defaults = apis::lidarr::get_defaults().await;
@@ -62,6 +80,7 @@ async fn request_artist(musicbrainz_artist_id: &str, artist_name: &str, monitori
         quality_profile_id: default.default_quality_profile_id,
         metadata_profile_id: default.default_metadata_profile_id,
         artist_name: artist_name.into(),
+        monitored: true
     };
 
     apis::lidarr::add_artist(request).await;
@@ -69,6 +88,6 @@ async fn request_artist(musicbrainz_artist_id: &str, artist_name: &str, monitori
     Ok(())
 }
 async fn request_album(lidarr_album_id: u32) -> Result<(), String> {
-    let _: () = apis::lidarr::monitor_album(lidarr_album_id).await;
+    let _: () = apis::lidarr::monitor_albums(vec!(lidarr_album_id)).await;
     Ok(())
 }

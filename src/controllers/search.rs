@@ -1,10 +1,10 @@
-use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Music, SearchResult, SearchType}};
+use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Artist, Music, SearchResult, SearchType}};
 
 pub async fn search(query: &str, limit: u32, search_type: &SearchType) -> SearchResult {
     match search_type {
         SearchType::Music => SearchResult::Musics(search_musics(query, limit).await),
         SearchType::Album => todo!(),
-        SearchType::Artist => todo!(),
+        SearchType::Artist => SearchResult::Artists(search_artists(query, limit).await),
     }
 }
 
@@ -31,6 +31,20 @@ async fn recording_exist_in_lidarr(recording: &Recording) -> bool {
     let tracks = futures::future::join_all(futures).await;
 
     tracks.into_iter().flatten().any(|track| track.foreign_recording_id == recording.id && track.has_file)
+}
+
+async fn artist_exist_in_lidarr(artist: &apis::musicbrainz::Artist) -> bool {
+    let artist = apis::lidarr::get_artist(&artist.id).await;
+    
+    match artist {
+        None => false,
+        Some(artist) if artist.monitored == false => false,
+        Some(artist) => {
+            let albums = apis::lidarr::get_albums_from_artist(artist.id).await;
+
+            albums.into_iter().all(|a| a.monitored)
+        },
+    }
 }
 
 fn is_live(album: &ReleaseGroup) -> bool {
@@ -62,18 +76,33 @@ async fn search_musics(query: &str, limit: u32) -> Vec<Music> {
             }
         })
         .map(|recording| async {
-            let exist = recording_exist_in_lidarr(&recording).await;
-            let artist = recording.artist_credit.into_iter().next().unwrap().artist;
+            let artist = &recording.artist_credit.iter().next().unwrap().artist;
+            let exist = artist_exist_in_lidarr(&artist).await && recording_exist_in_lidarr(&recording).await;
             let album = recording.releases.unwrap().into_iter().next().unwrap().release_group;
             Music {
                 title: recording.title,
-                artist: artist.name,
-                artist_id: artist.id,
+                artist: artist.name.clone(),
+                artist_id: artist.id.clone(),
                 album_id: album.id,
                 album: album.title,
                 id: recording.id,
                 monitored: exist,
                 album_type: album.primary_type.unwrap_or_default(),
+            }
+        });
+
+    futures::future::join_all(futures).await
+}
+async fn search_artists(query: &str, limit: u32) -> Vec<Artist> {
+    let result = apis::musicbrainz::search_artist(query, limit).await;
+
+    let futures = result.artists.into_iter()
+        .map(|artist| async {
+            let exist = artist_exist_in_lidarr(&artist).await;
+            Artist {
+                name: artist.name,
+                id: artist.id,
+                monitored: exist,
             }
         });
 

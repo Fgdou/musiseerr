@@ -48,8 +48,55 @@ pub struct GetMusicResponse {
     pub artist_credits: Vec<ArtistCredit>,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct SearchArtistResponse {
+    pub artists: Vec<Artist>
+}
+
 pub async fn search_music(query: &str, limit: u32) -> SearchMusicResponse {
     let url = format!("{}/recording?query={}&limit={}", API_URL, query, limit);
+
+    dbg!(&url);
+
+    let res = reqwest::Client::new()
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    dbg!(&res);
+
+    res
+}
+
+pub async fn search_artist(query: &str, limit: u32) -> SearchArtistResponse {
+    let url = format!("{}/artist?query={}&limit={}", API_URL, query, limit);
+
+    dbg!(&url);
+
+    let res = reqwest::Client::new()
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    dbg!(&res);
+
+    res
+}
+
+pub async fn get_artist(id: &str) -> Artist {
+    let url = format!("{}/artist/{}?inc=release-groups", API_URL, id);
 
     dbg!(&url);
 

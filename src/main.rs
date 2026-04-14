@@ -3,7 +3,7 @@ use dotenv::dotenv;
 use maud::{Markup, html};
 use tower_http::services::ServeDir;
 
-use crate::objects::{MusicRequest, SearchParameters};
+use crate::objects::{ArtistRequest, MusicRequest, SearchParameters};
 
 mod controllers;
 mod views;
@@ -21,6 +21,7 @@ async fn main() {
         }))
         .route("/search", get(search_controller))
         .route("/request_music", post(request_music_controller))
+        .route("/request_artist", post(request_artist_controller))
         .nest_service("/static", ServeDir::new("./static/"));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -29,6 +30,15 @@ async fn main() {
 
 async fn request_music_controller(req: Form<MusicRequest>) -> Response {
     let res = controllers::request::music(&req.music_id).await;
+
+    match res {
+        Err(e) => Response::builder().status(400).body(e.into()).unwrap(),
+        _ => Response::builder().status(200).body("OK".into()).unwrap()
+    }
+}
+
+async fn request_artist_controller(req: Form<ArtistRequest>) -> Response {
+    let res = controllers::request::artist(&req.artist_id).await;
 
     match res {
         Err(e) => Response::builder().status(400).body(e.into()).unwrap(),

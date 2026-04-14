@@ -21,6 +21,7 @@ pub struct SearchParameters {
 #[derive(Serialize)]
 pub enum SearchResult {
     Musics(Vec<Music>),
+    Artists(Vec<Artist>),
 }
 
 #[derive(Serialize)]
@@ -35,7 +36,19 @@ pub struct Music {
     pub album_type: String,
 }
 
+#[derive(Serialize)]
+pub struct Artist {
+    pub name: String,
+    pub id: String,
+    pub monitored: bool,
+}
+
 #[derive(Deserialize)]
 pub struct MusicRequest {
     pub music_id: String,
+}
+
+#[derive(Deserialize)]
+pub struct ArtistRequest {
+    pub artist_id: String,
 }
