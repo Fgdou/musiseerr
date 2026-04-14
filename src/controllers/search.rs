@@ -1,10 +1,10 @@
-use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Music, SearchResult}};
+use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Music, SearchResult, SearchType}};
 
-pub async fn search(query: &str, limit: u32) -> SearchResult {
-    let musics = search_musics(query, limit).await;
-
-    SearchResult {
-        musics,
+pub async fn search(query: &str, limit: u32, search_type: &SearchType) -> SearchResult {
+    match search_type {
+        SearchType::Music => SearchResult::Musics(search_musics(query, limit).await),
+        SearchType::Album => todo!(),
+        SearchType::Artist => todo!(),
     }
 }
 

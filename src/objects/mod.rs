@@ -1,14 +1,26 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
+pub enum SearchType {
+    #[serde(rename = "music")]
+    Music,
+    #[serde(rename = "album")]
+    Album,
+    #[serde(rename = "artist")]
+    Artist,
+}
+
+#[derive(Deserialize)]
 pub struct SearchParameters {
     pub query: Option<String>,
     pub max: Option<u32>,
+    #[serde(rename = "type")]
+    pub search_type: Option<SearchType>,
 }
 
 #[derive(Serialize)]
-pub struct SearchResult {
-    pub musics: Vec<Music>,
+pub enum SearchResult {
+    Musics(Vec<Music>),
 }
 
 #[derive(Serialize)]

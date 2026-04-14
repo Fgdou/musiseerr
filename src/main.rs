@@ -41,9 +41,9 @@ async fn search_controller(search_params: Query<SearchParameters>, headers: Head
 
     let search_bar = views::search::search_bar(&search_params);
 
-    let search = match (&search_params.query, search_params.max) {
-        (Some(query), Some(limit)) => Some(controllers::search::search(query, limit).await),
-        (Some(query), None) => Some(controllers::search::search(query, 50).await),
+    let search = match (&search_params.query, search_params.max, &search_params.search_type) {
+        (Some(query), Some(limit), Some(search_type)) => Some(controllers::search::search(query, limit, search_type).await),
+        (Some(query), None, Some(search_type)) => Some(controllers::search::search(query, 50, search_type).await),
         _ => None
     };
 
