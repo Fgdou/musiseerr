@@ -4,7 +4,7 @@ use crate::objects::{SearchParameters, SearchResult};
 
 pub fn search_bar(parameters: &SearchParameters) -> Markup {
     html!(
-        form hx-get="./search" hx-target="#search-content" hx-disabled-elt="#search-button" {
+        form hx-get="./search" hx-target="#search-content" hx-disabled-elt="#search-button" hx-replace-url="true" {
             input name="query" value=(parameters.query.as_ref().unwrap_or(&"".to_string())) placeholder="Search text" {}
             button type="submit" id="search-button" { "search" }
         }
@@ -35,8 +35,11 @@ pub fn search_result(result: &SearchResult) -> Markup {
                         td {(music.artist)}
                         td {(music.monitored)}
                         td {
-                            button disabled[music.monitored] {
-                                "Request"
+                            form hx-post="/request_music" hx-disabled-elt="find button" hx-target="this" hx-swap="outerHTML" {
+                                button type="submit" disabled[music.monitored] {
+                                    "Request"
+                                }
+                                input type="hidden" value=(music.id) name="music_id" {}
                             }
                         }
                     }
