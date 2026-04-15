@@ -20,8 +20,7 @@ WORKDIR /app
 
 RUN apk add --no-cache \
     ca-certificates \
-    libgcc \
-    libssl3
+    libgcc
 
 COPY --from=builder /app/static /app/static
 COPY --from=builder /app/musiseerr /app/musiseerr
