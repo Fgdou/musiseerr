@@ -1,4 +1,4 @@
-use axum::{Form, Router, extract::Query, http::HeaderMap, response::Response, routing::{get, post}};
+use axum::{Form, Router, extract::Query, http::HeaderMap, response::{Redirect, Response}, routing::{get, post}};
 use dotenv::dotenv;
 use maud::{Markup, html};
 use tokio::signal;
@@ -20,6 +20,7 @@ async fn main() {
         .route("/health", get(async || {
             "OK"
         }))
+        .route("/", get(|| async {Redirect::permanent("/search")}))
         .route("/search", get(search_controller))
         .route("/request_music", post(request_music_controller))
         .route("/request_artist", post(request_artist_controller))
