@@ -1,0 +1,13 @@
+services:
+  musiseerr:
+    image: ghcr.io/fgdou/musiseerr:main
+    environment:
+      - LIDARR_API_KEY=
+      - LIDARR_URL=http://lidarr:8686
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+  lidarr:
+    image: ghcr.io/hotio/lidarr:latest
+    ports:
+      - "8686:8686"
