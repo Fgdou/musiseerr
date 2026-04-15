@@ -23,6 +23,7 @@ RUN apk add --no-cache \
     libgcc \
     libssl3
 
+COPY --from=builder /app/static /app/static
 COPY --from=builder /app/musiseerr /app/musiseerr
 
 RUN adduser -D -u 10001 appuser
