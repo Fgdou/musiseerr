@@ -38,7 +38,7 @@ async fn artist_exist_in_lidarr(artist: &apis::musicbrainz::Artist) -> bool {
     
     match artist {
         None => false,
-        Some(artist) if artist.monitored == false => false,
+        Some(artist) if !artist.monitored => false,
         Some(artist) => {
             let albums = apis::lidarr::get_albums_from_artist(artist.id).await;
 
@@ -63,9 +63,7 @@ async fn search_musics(query: &str, limit: u32) -> Vec<Music> {
     let futures = result.recordings
         .into_iter()
         .filter_map(|mut recording| {
-            if recording.releases.is_none() {
-                return None;
-            }
+            recording.releases.as_ref()?;
             recording.releases = Some(recording.releases.unwrap().into_iter().filter(|release| {
                 is_live(&release.release_group)
             }).collect());
@@ -76,8 +74,8 @@ async fn search_musics(query: &str, limit: u32) -> Vec<Music> {
             }
         })
         .map(|recording| async {
-            let artist = &recording.artist_credit.iter().next().unwrap().artist;
-            let exist = artist_exist_in_lidarr(&artist).await && recording_exist_in_lidarr(&recording).await;
+            let artist = &recording.artist_credit.first().unwrap().artist;
+            let exist = artist_exist_in_lidarr(artist).await && recording_exist_in_lidarr(&recording).await;
             let album = recording.releases.unwrap().into_iter().next().unwrap().release_group;
             Music {
                 title: recording.title,

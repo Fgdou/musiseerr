@@ -70,9 +70,8 @@ pub async fn get_album(musicbrainz_id: &str) -> Option<Album> {
         .await
         .unwrap();
 
-    res.into_iter().next().map(|r| {
-        dbg!(&r);
-        r
+    res.into_iter().next().inspect(|r| {
+        dbg!(r);
     })
 }
 
@@ -115,9 +114,8 @@ pub async fn get_artist(musicbrainz_id: &str) -> Option<Artist> {
         .await
         .unwrap();
 
-    res.into_iter().next().map(|r| {
-        dbg!(&r);
-        r
+    res.into_iter().next().inspect(|r| {
+        dbg!(r);
     })
 }
 
