@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq)]
 pub enum SearchType {
     #[serde(rename = "music")]
     Music,

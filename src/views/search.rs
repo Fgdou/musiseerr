@@ -1,15 +1,15 @@
 use maud::{Markup, html};
 
-use crate::objects::{SearchParameters, SearchResult};
+use crate::objects::{SearchParameters, SearchResult, SearchType};
 
 pub fn search_bar(parameters: &SearchParameters) -> Markup {
     html!(
         form class="search-bar text-center" hx-get="./search" hx-target="#search-content" hx-disabled-elt="#search-button" hx-replace-url="true" {
             div class="input-group" {
                 select class="form-select w-auto flex-grow-0" placeholder="Type" required name="type" {
-                    option value="music" {"Music"}
-                    option value="album" {"Album"}
-                    option value="artist" {"Artist"}
+                    option value="music" selected[parameters.search_type == Some(SearchType::Music)] {"Music"}
+                    option value="album" selected[parameters.search_type == Some(SearchType::Album)] {"Album"}
+                    option value="artist" selected[parameters.search_type == Some(SearchType::Artist)] {"Artist"}
                 }
                 input required class="form-control" name="query" value=(parameters.query.as_ref().unwrap_or(&"".to_string())) placeholder="Search text" {}
                 button type="submit" id="search-button" class="btn btn-primary" { "search" }
