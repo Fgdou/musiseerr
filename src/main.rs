@@ -1,6 +1,7 @@
 use axum::{Form, Router, extract::Query, http::HeaderMap, response::Response, routing::{get, post}};
 use dotenv::dotenv;
 use maud::{Markup, html};
+use tokio::signal;
 use tower_http::services::ServeDir;
 
 use crate::objects::{ArtistRequest, MusicRequest, SearchParameters};
@@ -25,7 +26,31 @@ async fn main() {
         .nest_service("/static", ServeDir::new("./static/"));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app).with_graceful_shutdown(shutdown_signal()).await.unwrap();
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
 }
 
 async fn request_music_controller(req: Form<MusicRequest>) -> Response {
