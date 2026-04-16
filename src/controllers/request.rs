@@ -23,7 +23,7 @@ pub async fn music(id: &str) -> Result<(), String> {
 
             wait_for_artist_available(mbz_artist_id).await?;
 
-            let lidarr_album = apis::lidarr::get_album(mbz_album_id).await?.ok_or::<String>("Failed to get albums of new artist".into())?;
+            let lidarr_album = apis::lidarr::get_album(mbz_album_id).await?.ok_or::<String>("Failed to get the requested album of the new monitored artist".into())?;
 
             request_album(lidarr_album.id).await?;
         },
@@ -74,7 +74,7 @@ pub async fn album(id: &str) -> Result<(), String> {
         (None, _) => {
             request_artist(&artist.id, &artist.name, Monitoring::None).await?;
             wait_for_artist_available(&artist.id).await?;
-            let lidarr_album = apis::lidarr::get_album(&mbz_album.id).await?.ok_or::<String>("Failed to get albums of new artist".into())?;
+            let lidarr_album = apis::lidarr::get_album(&mbz_album.id).await?.ok_or::<String>("Failed to get the requested albums of new monitored artist".into())?;
 
             request_album(lidarr_album.id).await?;
 
