@@ -104,6 +104,7 @@ async fn search_musics(query: &str, limit: u32) -> Result<Vec<Music>, String> {
                 }
             };
             Ok(Some(Music {
+                album_types: get_album_types(&album),
                 title: recording.title,
                 artist: artist.name.clone(),
                 artist_id: artist.id.clone(),
@@ -111,7 +112,6 @@ async fn search_musics(query: &str, limit: u32) -> Result<Vec<Music>, String> {
                 album: album.title,
                 id: recording.id,
                 monitored: exist,
-                album_type: album.primary_type.unwrap_or_default(),
             }))
         });
 
@@ -135,6 +135,14 @@ async fn search_artists(query: &str, limit: u32) -> Result<Vec<Artist>, String> 
 
     futures::future::try_join_all(futures).await
 }
+fn get_album_types(album: &ReleaseGroup) -> Vec<String> {
+    let mut primary = album.primary_type.as_ref().map(|t| vec!(t.clone())).unwrap_or_default();
+    let mut secondary = album.secondary_types.as_ref().map(|e| e.clone()).unwrap_or_default();
+
+    primary.append(&mut secondary);
+
+    primary
+}
 async fn search_albums(query: &str, limit: u32) -> Result<Vec<Album>, String> {
     let results = apis::musicbrainz::search_album(query, limit).await?;
 
@@ -150,12 +158,12 @@ async fn search_albums(query: &str, limit: u32) -> Result<Vec<Album>, String> {
                 }
             };
             Ok(Some(Album {
+                album_types: get_album_types(&album),
                 id: album.id,
                 monitored: exist,
                 artist_id: artist.id.clone(),
                 name: album.title,
                 artist: artist.name.clone(),
-                album_type: album.primary_type.unwrap_or_default(),
             }))
         });
 

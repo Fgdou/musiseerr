@@ -34,7 +34,7 @@ pub struct Music {
     pub album_id: String,
     pub id: String,
     pub monitored: bool,
-    pub album_type: String,
+    pub album_types: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -51,7 +51,7 @@ pub struct Album {
     pub monitored: bool,
     pub artist: String,
     pub artist_id: String,
-    pub album_type: String,
+    pub album_types: Vec<String>,
 }
 
 #[derive(Deserialize)]

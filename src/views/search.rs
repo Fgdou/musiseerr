@@ -29,6 +29,7 @@ pub fn search_result(result: &SearchResult) -> Markup {
                         tr {
                             th {"Title"}
                             th {"Album"}
+                            th {"Album Type"}
                             th {"Artist"}
                             th {"Request"}
                         }
@@ -38,6 +39,7 @@ pub fn search_result(result: &SearchResult) -> Markup {
                             tr { 
                                 td {(music.title)}
                                 td {(music.album)}
+                                td {(music.album_types.join("|"))}
                                 td {(music.artist)}
                                 td {
                                     form hx-post="/request_music" hx-disabled-elt="find button" hx-target="this" hx-swap="outerHTML" {
@@ -90,6 +92,7 @@ pub fn search_result(result: &SearchResult) -> Markup {
                     thead class="sticky-top" {
                         tr {
                             th {"Name"}
+                            th {"Album Type"}
                             th {"Artist"}
                             th {"Request"}
                         }
@@ -98,6 +101,7 @@ pub fn search_result(result: &SearchResult) -> Markup {
                         @for album in albums {
                             tr { 
                                 td {(album.name)}
+                                td {(album.album_types.join("|"))}
                                 td {(album.artist)}
                                 td {
                                     form hx-post="/request_album" hx-disabled-elt="find button" hx-target="this" hx-swap="outerHTML" {
