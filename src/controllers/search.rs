@@ -64,9 +64,8 @@ fn is_live(album: &ReleaseGroup) -> bool {
         None => false,
         Some(list) => list.contains(&"Live".into()),
     };
-    let first_type_live = album.primary_type != Some("Album".into());
 
-    !first_type_live && !secondary_types_contains_live
+    !secondary_types_contains_live
 }
 
 async fn search_musics(query: &str, limit: u32) -> Result<Vec<Music>, String> {
@@ -140,6 +139,7 @@ async fn search_albums(query: &str, limit: u32) -> Result<Vec<Album>, String> {
     let results = apis::musicbrainz::search_album(query, limit).await?;
 
     let futures = results.release_groups.into_iter()
+        .filter(|album| is_live(&album))
         .map(|album| async {
             let exist = album_exist_in_lidarr(&album).await?;
             let artist = match &album.artist_credit {
