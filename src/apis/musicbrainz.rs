@@ -38,7 +38,7 @@ pub struct ReleaseGroup {
     #[serde(rename = "secondary-types")]
     pub secondary_types: Option<Vec<String>>,
     #[serde(rename = "artist-credit")]
-    pub artist_credit: Vec<ArtistCredit>,
+    pub artist_credit: Option<Vec<ArtistCredit>>,
 }
 
 #[derive(Deserialize, Debug)]

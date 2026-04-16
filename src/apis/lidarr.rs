@@ -26,6 +26,13 @@ pub struct Artist {
     pub foreign_artist_id: String,
     pub id: u32,
     pub monitored: bool,
+    pub statistics: Option<ArtistStatistics>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ArtistStatistics {
+    #[serde(rename = "albumCount")]
+    pub album_count: u32, 
 }
 
 #[derive(Deserialize, Debug)]

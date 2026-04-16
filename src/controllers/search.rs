@@ -124,9 +124,9 @@ async fn search_albums(query: &str, limit: u32) -> Vec<Album> {
             Album {
                 id: album.id,
                 monitored: exist,
-                artist_id: album.artist_credit.first().unwrap().artist.id.clone(),
+                artist_id: album.artist_credit.as_ref().unwrap().first().unwrap().artist.id.clone(),
                 name: album.title,
-                artist: album.artist_credit.first().unwrap().artist.name.clone(),
+                artist: album.artist_credit.as_ref().unwrap().first().unwrap().artist.name.clone(),
                 album_type: album.primary_type.unwrap_or_default(),
             }
         });

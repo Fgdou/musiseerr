@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::apis::{self, lidarr::{AddOptions, ArtistRequest}};
+use crate::apis::{self, lidarr::{AddOptions, Artist, ArtistRequest}};
 
 pub async fn music(id: &str) -> Result<(), String> {
     let mbz_music = apis::musicbrainz::get_music(id).await;
@@ -16,7 +16,7 @@ pub async fn music(id: &str) -> Result<(), String> {
         None => {
             request_artist(mbz_artist_id, &mbz_artist.name, Monitoring::None).await?;
 
-            tokio::time::sleep(Duration::from_secs(5)).await;
+            wait_for_artist_available(&mbz_artist_id).await?;
 
             let lidarr_album = apis::lidarr::get_album(mbz_album_id).await.ok_or::<String>("Failed to get albums of new artist".into())?;
 
@@ -57,14 +57,14 @@ pub async fn artist(id: &str) -> Result<(), String> {
 
 pub async fn album(id: &str) -> Result<(), String> {
     let mbz_album = apis::musicbrainz::get_album(id).await;
-    let artist = &mbz_album.artist_credit.first().unwrap().artist;
+    let artist = &mbz_album.artist_credit.as_ref().unwrap().first().unwrap().artist;
     let lidarr_album = apis::lidarr::get_album(id).await;
     let lidarr_artist = apis::lidarr::get_artist(&artist.id).await;
 
     match (lidarr_artist, lidarr_album) {
         (None, _) => {
             request_artist(&artist.id, &artist.name, Monitoring::None).await?;
-            tokio::time::sleep(Duration::from_secs(5)).await;
+            wait_for_artist_available(&artist.id).await?;
             let lidarr_album = apis::lidarr::get_album(&mbz_album.id).await.ok_or::<String>("Failed to get albums of new artist".into())?;
 
             request_album(lidarr_album.id).await?;
@@ -82,6 +82,28 @@ pub async fn album(id: &str) -> Result<(), String> {
 enum Monitoring {
     All,
     None,
+}
+
+async fn wait_for_artist_available(id: &str) -> Result<(), String> {
+    let mut last_album_count = None;
+    for _ in 0..100 {
+        let artist = apis::lidarr::get_artist(id).await;
+
+        match (artist, last_album_count) {
+            (Some(Artist{statistics: Some(stats), ..}), None) => last_album_count = Some(stats.album_count),
+            (Some(Artist{statistics: Some(stats), ..}), Some(last_count)) => {
+                let count = stats.album_count;
+
+                if count == last_count {
+                    return Ok(())
+                }
+            }
+            _ => (),
+        }
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+    Err("Failed to wait for artist".into())
 }
 
 async fn request_artist(musicbrainz_artist_id: &str, artist_name: &str, monitoring: Monitoring) -> Result<(), String> {
