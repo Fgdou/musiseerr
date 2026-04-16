@@ -37,15 +37,8 @@ pub struct ReleaseGroup {
     pub primary_type: Option<String>,
     #[serde(rename = "secondary-types")]
     pub secondary_types: Option<Vec<String>>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct GetMusicResponse {
-    pub id: String,
-    pub title: String,
-    pub releases: Vec<Release>,    
     #[serde(rename = "artist-credit")]
-    pub artist_credits: Vec<ArtistCredit>,
+    pub artist_credit: Option<Vec<ArtistCredit>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -53,86 +46,111 @@ pub struct SearchArtistResponse {
     pub artists: Vec<Artist>
 }
 
-pub async fn search_music(query: &str, limit: u32) -> SearchMusicResponse {
+#[derive(Deserialize, Debug)]
+pub struct SearchAlbumResponse {
+    #[serde(rename = "release-groups")]
+    pub release_groups: Vec<ReleaseGroup>,
+}
+
+pub async fn search_music(query: &str, limit: u32) -> Result<SearchMusicResponse, String> {
     let url = format!("{}/recording?query={}&limit={}", API_URL, query, limit);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
-
-    dbg!(&res);
-
-    res
+        .map_err(|e| e.to_string())
 }
 
-pub async fn search_artist(query: &str, limit: u32) -> SearchArtistResponse {
+pub async fn search_artist(query: &str, limit: u32) -> Result<SearchArtistResponse, String> {
     let url = format!("{}/artist?query={}&limit={}", API_URL, query, limit);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
-
-    dbg!(&res);
-
-    res
+        .map_err(|e| e.to_string())
 }
 
-pub async fn get_artist(id: &str) -> Artist {
+pub async fn search_album(query: &str, limit: u32) -> Result<SearchAlbumResponse, String> {
+    let url = format!("{}/release-group?query={}&limit={}", API_URL, query, limit);
+
+    dbg!(&url);
+
+    reqwest::Client::new()
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .json()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+pub async fn get_artist(id: &str) -> Result<Artist, String> {
     let url = format!("{}/artist/{}?inc=release-groups", API_URL, id);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
-
-    dbg!(&res);
-
-    res
+        .map_err(|e| e.to_string())
 }
 
-pub async fn get_music(id: &str) -> GetMusicResponse {
+pub async fn get_music(id: &str) -> Result<Recording, String> {
     let url = format!("{}/recording/{}?inc=release-groups+releases+artist-credits", API_URL, id);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
+        .map_err(|e| e.to_string())
+}
 
-    dbg!(&res);
 
-    res
+pub async fn get_album(id: &str) -> Result<ReleaseGroup, String> {
+    let url = format!("{}/release-group/{}?inc=artist-credits", API_URL, id);
+
+    dbg!(&url);
+
+    reqwest::Client::new()
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .json()
+        .await
+        .map_err(|e| e.to_string())
 }
