@@ -1,10 +1,10 @@
-use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Album, Artist, Music, SearchResult, SearchType}};
+use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Album, Artist, Music, SearchParametersFixed, SearchResult, SearchType}};
 
-pub async fn search(query: &str, limit: u32, search_type: &SearchType) -> Result<SearchResult, String> {
-    Ok(match search_type {
-        SearchType::Music => SearchResult::Musics(search_musics(query, limit).await?),
-        SearchType::Album => SearchResult::Albums(search_albums(query, limit).await?),
-        SearchType::Artist => SearchResult::Artists(search_artists(query, limit).await?),
+pub async fn search(params: &SearchParametersFixed) -> Result<SearchResult, String> {
+    Ok(match params.search_type {
+        SearchType::Music => SearchResult::Musics(search_musics(params).await?),
+        SearchType::Album => SearchResult::Albums(search_albums(params).await?),
+        SearchType::Artist => SearchResult::Artists(search_artists(params).await?),
     })
 }
 
@@ -64,13 +64,12 @@ fn is_live(album: &ReleaseGroup) -> bool {
         None => false,
         Some(list) => list.contains(&"Live".into()),
     };
-    let first_type_live = album.primary_type != Some("Album".into());
 
-    !first_type_live && !secondary_types_contains_live
+    !secondary_types_contains_live
 }
 
-async fn search_musics(query: &str, limit: u32) -> Result<Vec<Music>, String> {
-    let result = apis::musicbrainz::search_music(query, limit).await?;
+async fn search_musics(params: &SearchParametersFixed) -> Result<Vec<Music>, String> {
+    let result = apis::musicbrainz::search_music(&params.query, params.max, params.get_offset()).await?;
 
     let futures = result.recordings
         .into_iter()
@@ -105,6 +104,7 @@ async fn search_musics(query: &str, limit: u32) -> Result<Vec<Music>, String> {
                 }
             };
             Ok(Some(Music {
+                album_types: get_album_types(&album),
                 title: recording.title,
                 artist: artist.name.clone(),
                 artist_id: artist.id.clone(),
@@ -112,7 +112,6 @@ async fn search_musics(query: &str, limit: u32) -> Result<Vec<Music>, String> {
                 album: album.title,
                 id: recording.id,
                 monitored: exist,
-                album_type: album.primary_type.unwrap_or_default(),
             }))
         });
 
@@ -121,8 +120,8 @@ async fn search_musics(query: &str, limit: u32) -> Result<Vec<Music>, String> {
         .flatten()
         .collect())
 }
-async fn search_artists(query: &str, limit: u32) -> Result<Vec<Artist>, String> {
-    let result = apis::musicbrainz::search_artist(query, limit).await?;
+async fn search_artists(params: &SearchParametersFixed) -> Result<Vec<Artist>, String> {
+    let result = apis::musicbrainz::search_artist(&params.query, params.max, params.get_offset()).await?;
 
     let futures = result.artists.into_iter()
         .map(|artist| async {
@@ -136,10 +135,19 @@ async fn search_artists(query: &str, limit: u32) -> Result<Vec<Artist>, String> 
 
     futures::future::try_join_all(futures).await
 }
-async fn search_albums(query: &str, limit: u32) -> Result<Vec<Album>, String> {
-    let results = apis::musicbrainz::search_album(query, limit).await?;
+fn get_album_types(album: &ReleaseGroup) -> Vec<String> {
+    let mut primary = album.primary_type.as_ref().map(|t| vec!(t.clone())).unwrap_or_default();
+    let mut secondary = album.secondary_types.as_ref().map(|e| e.clone()).unwrap_or_default();
+
+    primary.append(&mut secondary);
+
+    primary
+}
+async fn search_albums(params: &SearchParametersFixed) -> Result<Vec<Album>, String> {
+    let results = apis::musicbrainz::search_album(&params.query, params.max, params.get_offset()).await?;
 
     let futures = results.release_groups.into_iter()
+        .filter(|album| is_live(&album))
         .map(|album| async {
             let exist = album_exist_in_lidarr(&album).await?;
             let artist = match &album.artist_credit {
@@ -150,12 +158,12 @@ async fn search_albums(query: &str, limit: u32) -> Result<Vec<Album>, String> {
                 }
             };
             Ok(Some(Album {
+                album_types: get_album_types(&album),
                 id: album.id,
                 monitored: exist,
                 artist_id: artist.id.clone(),
                 name: album.title,
                 artist: artist.name.clone(),
-                album_type: album.primary_type.unwrap_or_default(),
             }))
         });
 
