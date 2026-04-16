@@ -118,7 +118,7 @@ async fn search_musics(query: &str, limit: u32) -> Result<Vec<Music>, String> {
 
     Ok(futures::future::try_join_all(futures).await?
         .into_iter()
-        .filter_map(|e| e)
+        .flatten()
         .collect())
 }
 async fn search_artists(query: &str, limit: u32) -> Result<Vec<Artist>, String> {
@@ -161,6 +161,6 @@ async fn search_albums(query: &str, limit: u32) -> Result<Vec<Album>, String> {
 
     Ok(futures::future::try_join_all(futures).await?
         .into_iter()
-        .filter_map(|e| e)
+        .flatten()
         .collect())
 }

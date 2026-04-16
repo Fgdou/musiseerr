@@ -186,7 +186,7 @@ pub async fn add_artist(artist: ArtistRequest) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     if !res.status().is_success() {
-        Err(String::from(format!("Failed to request artist: {}", res.text().await.unwrap_or(String::from("Failed to get text body")))))
+        Err(format!("Failed to request artist: {}", res.text().await.unwrap_or(String::from("Failed to get text body"))))
     } else {
         Ok(())
     }
@@ -223,7 +223,7 @@ pub async fn monitor_albums(lidarr_album_id: Vec<u32>) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     if !res.status().is_success() {
-        Err(String::from(format!("Failed to request artist: {}", res.text().await.unwrap_or(String::from("Failed to get text body")))))
+        Err(format!("Failed to request artist: {}", res.text().await.unwrap_or(String::from("Failed to get text body"))))
     } else {
         Ok(())
     }

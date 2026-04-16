@@ -32,8 +32,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .route("/request_artist", post(request_artist_controller))
         .nest_service("/static", ServeDir::new("./static/"));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.map_err(|e| Box::new(e))?;
-    axum::serve(listener, app).with_graceful_shutdown(shutdown_signal()).await.map_err(|e| Box::new(e))?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.map_err(Box::new)?;
+    axum::serve(listener, app).with_graceful_shutdown(shutdown_signal()).await.map_err(Box::new)?;
 
     Ok(())
 }
