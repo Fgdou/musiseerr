@@ -1,17 +1,20 @@
 use maud::{Markup, html};
 
-use crate::objects::{SearchParameters, SearchResult, SearchType};
+use crate::objects::{SearchParametersFixed, SearchResult, SearchType};
 
-pub fn search_bar(parameters: &SearchParameters) -> Markup {
+pub fn search_bar(parameters: &Option<SearchParametersFixed>) -> Markup {
+    let search_type = parameters.as_ref().map(|p| &p.search_type);
+    let query = parameters.as_ref().map(|p| p.query.clone()).unwrap_or_default();
+
     html!(
         form class="search-bar text-center" hx-get="./search" hx-target="#search-content" hx-disabled-elt="#search-button" hx-replace-url="true" {
             div class="input-group" {
                 select class="form-select w-auto flex-grow-0" placeholder="Type" required name="type" {
-                    option value="music" selected[parameters.search_type == Some(SearchType::Music)] {"Music"}
-                    option value="album" selected[parameters.search_type == Some(SearchType::Album)] {"Album"}
-                    option value="artist" selected[parameters.search_type == Some(SearchType::Artist)] {"Artist"}
+                    option value="music" selected[search_type == Some(&SearchType::Music)] {"Music"}
+                    option value="album" selected[search_type == Some(&SearchType::Album)] {"Album"}
+                    option value="artist" selected[search_type == Some(&SearchType::Artist)] {"Artist"}
                 }
-                input required class="form-control" name="query" value=(parameters.query.as_ref().unwrap_or(&"".to_string())) placeholder="Search text" {}
+                input required class="form-control" name="query" value=(query) placeholder="Search text" {}
                 button type="submit" id="search-button" class="btn btn-primary" { "search" }
             }
         }

@@ -9,7 +9,7 @@ use maud::{Markup, html};
 use tokio::signal;
 use tower_http::services::ServeDir;
 
-use crate::objects::{AlbumRequest, ArtistRequest, MusicRequest, SearchParameters};
+use crate::objects::{AlbumRequest, ArtistRequest, MusicRequest, SearchParameters, SearchParametersFixed};
 
 mod controllers;
 mod views;
@@ -90,19 +90,41 @@ async fn request_album_controller(req: Form<AlbumRequest>) -> Result<Response, S
     }
 }
 
+impl SearchParameters {
+    fn get(&self) -> Option<SearchParametersFixed> {
+        match self {
+            SearchParameters{
+                query: Some(s),
+                max: m,
+                page: p,
+                search_type: Some(search_type),
+            } => {
+                Some(SearchParametersFixed {
+                    query: s.clone(),
+                    max: m.unwrap_or(50).min(100),
+                    page: p.unwrap_or(0).min(500),
+                    search_type: search_type.clone(),
+                })
+            },
+            _ => None,
+        }
+    }
+}
+
 async fn search_controller(search_params: Query<SearchParameters>, headers: HeaderMap) -> Result<Markup, String> {
     let htmx = headers.get("HX-Request").is_some();
 
-    let search_bar = views::search::search_bar(&search_params);
+    let params = search_params.get();
 
-    let search = match (&search_params.query, search_params.max, &search_params.search_type) {
-        (Some(query), Some(limit), Some(search_type)) => Some(controllers::search::search(query, limit, search_type).await),
-        (Some(query), None, Some(search_type)) => Some(controllers::search::search(query, 50, search_type).await),
-        _ => None
+    let search_bar = views::search::search_bar(&params);
+
+    let search = match params {
+        Some(p) => Some(controllers::search::search(&p.query, p.max, &p.search_type).await?),
+        None => None,
     };
 
     if htmx && let Some(search) = search {
-        return Ok(views::search::search_result(&search?));
+        return Ok(views::search::search_result(&search));
     } 
     
     let content = html!(
@@ -112,7 +134,7 @@ async fn search_controller(search_params: Query<SearchParameters>, headers: Head
             div id="search-content" {
                 @match search {
                     None => (html!{}),
-                    Some(search) => (views::search::search_result(&search?))
+                    Some(search) => (views::search::search_result(&search))
                 }
             }
         }
