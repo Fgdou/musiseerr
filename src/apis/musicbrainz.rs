@@ -52,8 +52,8 @@ pub struct SearchAlbumResponse {
     pub release_groups: Vec<ReleaseGroup>,
 }
 
-pub async fn search_music(query: &str, limit: u32) -> Result<SearchMusicResponse, String> {
-    let url = format!("{}/recording?query={}&limit={}", API_URL, query, limit);
+pub async fn search_music(query: &str, limit: u32, offset: u32) -> Result<SearchMusicResponse, String> {
+    let url = format!("{}/recording?query={}&limit={}&offset={}", API_URL, query, limit, offset);
 
     dbg!(&url);
 
@@ -69,8 +69,8 @@ pub async fn search_music(query: &str, limit: u32) -> Result<SearchMusicResponse
         .map_err(|e| e.to_string())
 }
 
-pub async fn search_artist(query: &str, limit: u32) -> Result<SearchArtistResponse, String> {
-    let url = format!("{}/artist?query={}&limit={}", API_URL, query, limit);
+pub async fn search_artist(query: &str, limit: u32, offset: u32) -> Result<SearchArtistResponse, String> {
+    let url = format!("{}/artist?query={}&limit={}&offset={}", API_URL, query, limit, offset);
 
     dbg!(&url);
 
@@ -86,8 +86,8 @@ pub async fn search_artist(query: &str, limit: u32) -> Result<SearchArtistRespon
         .map_err(|e| e.to_string())
 }
 
-pub async fn search_album(query: &str, limit: u32) -> Result<SearchAlbumResponse, String> {
-    let url = format!("{}/release-group?query={}&limit={}", API_URL, query, limit);
+pub async fn search_album(query: &str, limit: u32, offset: u32) -> Result<SearchAlbumResponse, String> {
+    let url = format!("{}/release-group?query={}&limit={}&offset={}", API_URL, query, limit, offset);
 
     dbg!(&url);
 

@@ -1,10 +1,10 @@
-use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Album, Artist, Music, SearchResult, SearchType}};
+use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Album, Artist, Music, SearchParametersFixed, SearchResult, SearchType}};
 
-pub async fn search(query: &str, limit: u32, search_type: &SearchType) -> Result<SearchResult, String> {
-    Ok(match search_type {
-        SearchType::Music => SearchResult::Musics(search_musics(query, limit).await?),
-        SearchType::Album => SearchResult::Albums(search_albums(query, limit).await?),
-        SearchType::Artist => SearchResult::Artists(search_artists(query, limit).await?),
+pub async fn search(params: &SearchParametersFixed) -> Result<SearchResult, String> {
+    Ok(match params.search_type {
+        SearchType::Music => SearchResult::Musics(search_musics(params).await?),
+        SearchType::Album => SearchResult::Albums(search_albums(params).await?),
+        SearchType::Artist => SearchResult::Artists(search_artists(params).await?),
     })
 }
 
@@ -68,8 +68,8 @@ fn is_live(album: &ReleaseGroup) -> bool {
     !secondary_types_contains_live
 }
 
-async fn search_musics(query: &str, limit: u32) -> Result<Vec<Music>, String> {
-    let result = apis::musicbrainz::search_music(query, limit).await?;
+async fn search_musics(params: &SearchParametersFixed) -> Result<Vec<Music>, String> {
+    let result = apis::musicbrainz::search_music(&params.query, params.max, params.get_offset()).await?;
 
     let futures = result.recordings
         .into_iter()
@@ -120,8 +120,8 @@ async fn search_musics(query: &str, limit: u32) -> Result<Vec<Music>, String> {
         .flatten()
         .collect())
 }
-async fn search_artists(query: &str, limit: u32) -> Result<Vec<Artist>, String> {
-    let result = apis::musicbrainz::search_artist(query, limit).await?;
+async fn search_artists(params: &SearchParametersFixed) -> Result<Vec<Artist>, String> {
+    let result = apis::musicbrainz::search_artist(&params.query, params.max, params.get_offset()).await?;
 
     let futures = result.artists.into_iter()
         .map(|artist| async {
@@ -143,8 +143,8 @@ fn get_album_types(album: &ReleaseGroup) -> Vec<String> {
 
     primary
 }
-async fn search_albums(query: &str, limit: u32) -> Result<Vec<Album>, String> {
-    let results = apis::musicbrainz::search_album(query, limit).await?;
+async fn search_albums(params: &SearchParametersFixed) -> Result<Vec<Album>, String> {
+    let results = apis::musicbrainz::search_album(&params.query, params.max, params.get_offset()).await?;
 
     let futures = results.release_groups.into_iter()
         .filter(|album| is_live(&album))

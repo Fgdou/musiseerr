@@ -111,6 +111,12 @@ impl SearchParameters {
     }
 }
 
+impl SearchParametersFixed {
+    fn get_offset(&self) -> u32 {
+        self.page*self.max
+    }
+}
+
 async fn search_controller(search_params: Query<SearchParameters>, headers: HeaderMap) -> Result<Markup, String> {
     let htmx = headers.get("HX-Request").is_some();
 
@@ -119,7 +125,7 @@ async fn search_controller(search_params: Query<SearchParameters>, headers: Head
     let search_bar = views::search::search_bar(&params);
 
     let search = match params {
-        Some(p) => Some(controllers::search::search(&p.query, p.max, &p.search_type).await?),
+        Some(p) => Some(controllers::search::search(&p).await?),
         None => None,
     };
 
