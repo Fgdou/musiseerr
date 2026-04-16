@@ -3,14 +3,19 @@ use std::time::Duration;
 use crate::apis::{self, lidarr::{AddOptions, Artist, ArtistRequest}};
 
 pub async fn music(id: &str) -> Result<(), String> {
-    let mbz_music = apis::musicbrainz::get_music(id).await;
-    let mbz_album = mbz_music.releases.as_ref().unwrap().first().unwrap();
+    let mbz_music = apis::musicbrainz::get_music(id).await?;
+    let mbz_album = mbz_music.releases.as_ref()
+        .ok_or(String::from("Failed to get release of album"))?
+        .first()
+        .ok_or(String::from("Failed to get release of album"))?;
     let mbz_album_id = &mbz_album.release_group.id;
-    let mbz_artist = &mbz_music.artist_credit.first().unwrap().artist;
+    let mbz_artist = &mbz_music.artist_credit.first()
+        .ok_or(String::from("Failed to get artist of album"))?
+        .artist;
     let mbz_artist_id = &mbz_artist.id;
     
 
-    let lidarr_album = apis::lidarr::get_album(mbz_album_id).await;
+    let lidarr_album = apis::lidarr::get_album(mbz_album_id).await?;
 
     match lidarr_album {
         None => {
@@ -18,7 +23,7 @@ pub async fn music(id: &str) -> Result<(), String> {
 
             wait_for_artist_available(mbz_artist_id).await?;
 
-            let lidarr_album = apis::lidarr::get_album(mbz_album_id).await.ok_or::<String>("Failed to get albums of new artist".into())?;
+            let lidarr_album = apis::lidarr::get_album(mbz_album_id).await?.ok_or::<String>("Failed to get albums of new artist".into())?;
 
             request_album(lidarr_album.id).await?;
         },
@@ -36,15 +41,15 @@ pub async fn music(id: &str) -> Result<(), String> {
 }
 
 pub async fn artist(id: &str) -> Result<(), String> {
-    let mbz_artist = apis::musicbrainz::get_artist(id).await;
-    let lidarr_artist = apis::lidarr::get_artist(id).await;
+    let mbz_artist = apis::musicbrainz::get_artist(id).await?;
+    let lidarr_artist = apis::lidarr::get_artist(id).await?;
 
     match lidarr_artist {
         Some(artist) => {
-            let albums = apis::lidarr::get_albums_from_artist(artist.id).await;
+            let albums = apis::lidarr::get_albums_from_artist(artist.id).await?;
             let ids: Vec<_> = albums.into_iter().map(|a| a.id).collect();
 
-            apis::lidarr::monitor_albums(ids).await;
+            apis::lidarr::monitor_albums(ids).await?;
 
             Ok(())
         },
@@ -56,16 +61,20 @@ pub async fn artist(id: &str) -> Result<(), String> {
 }
 
 pub async fn album(id: &str) -> Result<(), String> {
-    let mbz_album = apis::musicbrainz::get_album(id).await;
-    let artist = &mbz_album.artist_credit.as_ref().unwrap().first().unwrap().artist;
-    let lidarr_album = apis::lidarr::get_album(id).await;
-    let lidarr_artist = apis::lidarr::get_artist(&artist.id).await;
+    let mbz_album = apis::musicbrainz::get_album(id).await?;
+    let artist = &mbz_album.artist_credit.as_ref()
+        .ok_or(String::from("Failed to get artist from album"))?
+        .first()
+        .ok_or(String::from("Failed to get artist from album"))?
+        .artist;
+    let lidarr_album = apis::lidarr::get_album(id).await?;
+    let lidarr_artist = apis::lidarr::get_artist(&artist.id).await?;
 
     match (lidarr_artist, lidarr_album) {
         (None, _) => {
             request_artist(&artist.id, &artist.name, Monitoring::None).await?;
             wait_for_artist_available(&artist.id).await?;
-            let lidarr_album = apis::lidarr::get_album(&mbz_album.id).await.ok_or::<String>("Failed to get albums of new artist".into())?;
+            let lidarr_album = apis::lidarr::get_album(&mbz_album.id).await?.ok_or::<String>("Failed to get albums of new artist".into())?;
 
             request_album(lidarr_album.id).await?;
 
@@ -87,7 +96,7 @@ enum Monitoring {
 async fn wait_for_artist_available(id: &str) -> Result<(), String> {
     let mut last_album_count = None;
     for _ in 0..100 {
-        let artist = apis::lidarr::get_artist(id).await;
+        let artist = apis::lidarr::get_artist(id).await?;
 
         match (artist, last_album_count) {
             (Some(Artist{statistics: Some(stats), ..}), None) => last_album_count = Some(stats.album_count),
@@ -112,8 +121,8 @@ async fn request_artist(musicbrainz_artist_id: &str, artist_name: &str, monitori
         Monitoring::None => "existing",
     };
 
-    let defaults = apis::lidarr::get_defaults().await;
-    let default = defaults.first().unwrap();
+    let defaults = apis::lidarr::get_defaults().await?;
+    let default = defaults.first().ok_or(String::from("Failed to get default path in Lidarr. Please configure one."))?;
 
     let request = ArtistRequest {
         add_options: AddOptions {
@@ -129,11 +138,11 @@ async fn request_artist(musicbrainz_artist_id: &str, artist_name: &str, monitori
         monitored: true
     };
 
-    apis::lidarr::add_artist(request).await;
+    apis::lidarr::add_artist(request).await?;
 
     Ok(())
 }
 async fn request_album(lidarr_album_id: u32) -> Result<(), String> {
-    let _: () = apis::lidarr::monitor_albums(vec!(lidarr_album_id)).await;
+    let _: () = apis::lidarr::monitor_albums(vec!(lidarr_album_id)).await?;
     Ok(())
 }

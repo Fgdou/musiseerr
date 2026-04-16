@@ -58,9 +58,9 @@ pub struct Track {
     pub has_file: bool,
 }
 
-pub async fn get_album(musicbrainz_id: &str) -> Option<Album> {
-    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
-    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+pub async fn get_album(musicbrainz_id: &str) -> Result<Option<Album>, String> {
+    let env_url = env::var("LIDARR_URL").map_err(|_| String::from("LIDARR_URL env is not set"))?;
+    let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/album?foreignAlbumId={}", env_url, musicbrainz_id);
 
     dbg!(&url);
@@ -72,19 +72,17 @@ pub async fn get_album(musicbrainz_id: &str) -> Option<Album> {
         .bearer_auth(token)
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
+        .map_err(|e| e.to_string())?;
 
-    res.into_iter().next().inspect(|r| {
-        dbg!(r);
-    })
+    res.into_iter().next().ok_or(String::from("Failed to get album : no album"))
 }
 
-pub async fn get_albums_from_artist(lidarr_artist_id: u32) -> Vec<Album> {
-    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
-    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+pub async fn get_albums_from_artist(lidarr_artist_id: u32) -> Result<Vec<Album>, String> {
+    let env_url = env::var("LIDARR_URL").map_err(|_| String::from("LIDARR_URL env is not set"))?;
+    let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/album?artistId={}", env_url, lidarr_artist_id);
 
     dbg!(&url);
@@ -96,15 +94,15 @@ pub async fn get_albums_from_artist(lidarr_artist_id: u32) -> Vec<Album> {
         .bearer_auth(token)
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
 }
 
-pub async fn get_artist(musicbrainz_id: &str) -> Option<Artist> {
-    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
-    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+pub async fn get_artist(musicbrainz_id: &str) -> Result<Option<Artist>, String> {
+    let env_url = env::var("LIDARR_URL").map_err(|_| String::from("LIDARR_URL env is not set"))?;
+    let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/artist?mbId={}", env_url, musicbrainz_id);
 
     dbg!(&url);
@@ -116,38 +114,32 @@ pub async fn get_artist(musicbrainz_id: &str) -> Option<Artist> {
         .bearer_auth(token)
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
+        .map_err(|e| e.to_string())?;
 
-    res.into_iter().next().inspect(|r| {
-        dbg!(r);
-    })
+    res.into_iter().next().ok_or(String::from("Failed to get artist : no artist"))
 }
 
-pub async fn get_tracks(album_release_id: u32) -> Vec<Track> {
-    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
-    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+pub async fn get_tracks(album_release_id: u32) -> Result<Vec<Track>, String> {
+    let env_url = env::var("LIDARR_URL").map_err(|_| String::from("LIDARR_URL env is not set"))?;
+    let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/track?albumReleaseId={}", env_url, album_release_id);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .bearer_auth(token)
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
-
-    dbg!(&res);
-
-    res
+        .map_err(|e| e.to_string())
 }
 
 #[derive(Serialize, Debug)]
@@ -175,9 +167,9 @@ pub struct AddOptions {
     pub search_for_missing_albums: bool,
 }
 
-pub async fn add_artist(artist: ArtistRequest) {
-    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
-    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+pub async fn add_artist(artist: ArtistRequest) -> Result<(), String> {
+    let env_url = env::var("LIDARR_URL").map_err(|_| String::from("LIDARR_URL env is not set"))?;
+    let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/artist", env_url);
 
     dbg!(&url, &artist);
@@ -191,10 +183,12 @@ pub async fn add_artist(artist: ArtistRequest) {
         .bearer_auth(token)
         .send()
         .await
-        .unwrap();
+        .map_err(|e| e.to_string())?;
 
     if !res.status().is_success() {
-        panic!("Failed: {}", res.text().await.unwrap())
+        Err(String::from(format!("Failed to request artist: {}", res.text().await.unwrap_or(String::from("Failed to get text body")))))
+    } else {
+        Ok(())
     }
 }
 
@@ -205,9 +199,9 @@ struct AlbumMonitorRequest {
     monitored: bool,
 }
 
-pub async fn monitor_albums(lidarr_album_id: Vec<u32>) {
-    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
-    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+pub async fn monitor_albums(lidarr_album_id: Vec<u32>) -> Result<(), String> {
+    let env_url = env::var("LIDARR_URL").map_err(|_| String::from("LIDARR_URL env is not set"))?;
+    let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/album/monitor", env_url);
 
     let request = AlbumMonitorRequest {
@@ -226,10 +220,12 @@ pub async fn monitor_albums(lidarr_album_id: Vec<u32>) {
         .json(&request)
         .send()
         .await
-        .unwrap();
+        .map_err(|e| e.to_string())?;
 
     if !res.status().is_success() {
-        panic!("Failed: {}", res.text().await.unwrap())
+        Err(String::from(format!("Failed to request artist: {}", res.text().await.unwrap_or(String::from("Failed to get text body")))))
+    } else {
+        Ok(())
     }
 }
 
@@ -243,9 +239,9 @@ pub struct DefaultsResponse {
     pub default_quality_profile_id: u32,
 }
 
-pub async fn get_defaults() -> Vec<DefaultsResponse> {
-    let env_url = env::var("LIDARR_URL").expect("LIDARR_URL env is not set");
-    let token = env::var("LIDARR_API_KEY").expect("LIDARR_API_KEY env is not set");
+pub async fn get_defaults() -> Result<Vec<DefaultsResponse>, String> {
+    let env_url = env::var("LIDARR_URL").map_err(|_| String::from("LIDARR_URL env is not set"))?;
+    let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/rootfolder", env_url);
 
     dbg!(&url);
@@ -257,8 +253,8 @@ pub async fn get_defaults() -> Vec<DefaultsResponse> {
         .bearer_auth(token)
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())
 }

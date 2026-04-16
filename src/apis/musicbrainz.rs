@@ -52,132 +52,105 @@ pub struct SearchAlbumResponse {
     pub release_groups: Vec<ReleaseGroup>,
 }
 
-pub async fn search_music(query: &str, limit: u32) -> SearchMusicResponse {
+pub async fn search_music(query: &str, limit: u32) -> Result<SearchMusicResponse, String> {
     let url = format!("{}/recording?query={}&limit={}", API_URL, query, limit);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
-
-    dbg!(&res);
-
-    res
+        .map_err(|e| e.to_string())
 }
 
-pub async fn search_artist(query: &str, limit: u32) -> SearchArtistResponse {
+pub async fn search_artist(query: &str, limit: u32) -> Result<SearchArtistResponse, String> {
     let url = format!("{}/artist?query={}&limit={}", API_URL, query, limit);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
-
-    dbg!(&res);
-
-    res
+        .map_err(|e| e.to_string())
 }
 
-pub async fn search_album(query: &str, limit: u32) -> SearchAlbumResponse {
+pub async fn search_album(query: &str, limit: u32) -> Result<SearchAlbumResponse, String> {
     let url = format!("{}/release-group?query={}&limit={}", API_URL, query, limit);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .send()
         .await
-        .unwrap()
-        .text()
+        .map_err(|e| e.to_string())?
+        .json()
         .await
-        .unwrap();
-
-    dbg!(&res);
-    let res = serde_json::from_str(&res).unwrap();
-
-    dbg!(&res);
-
-    res
+        .map_err(|e| e.to_string())
 }
 
-pub async fn get_artist(id: &str) -> Artist {
+pub async fn get_artist(id: &str) -> Result<Artist, String> {
     let url = format!("{}/artist/{}?inc=release-groups", API_URL, id);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
-
-    dbg!(&res);
-
-    res
+        .map_err(|e| e.to_string())
 }
 
-pub async fn get_music(id: &str) -> Recording {
+pub async fn get_music(id: &str) -> Result<Recording, String> {
     let url = format!("{}/recording/{}?inc=release-groups+releases+artist-credits", API_URL, id);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
-
-    dbg!(&res);
-
-    res
+        .map_err(|e| e.to_string())
 }
 
 
-pub async fn get_album(id: &str) -> ReleaseGroup {
+pub async fn get_album(id: &str) -> Result<ReleaseGroup, String> {
     let url = format!("{}/release-group/{}?inc=artist-credits", API_URL, id);
 
     dbg!(&url);
 
-    let res = reqwest::Client::new()
+    reqwest::Client::new()
         .get(url)
         .header("Accept", "application/json")
         .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
         .send()
         .await
-        .unwrap()
+        .map_err(|e| e.to_string())?
         .json()
         .await
-        .unwrap();
-
-    dbg!(&res);
-
-    res
+        .map_err(|e| e.to_string())
 }
