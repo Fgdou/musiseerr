@@ -77,7 +77,7 @@ pub async fn get_album(musicbrainz_id: &str) -> Result<Option<Album>, String> {
         .await
         .map_err(|e| e.to_string())?;
 
-    res.into_iter().next().ok_or(String::from("Failed to get album : no album"))
+    Ok(res.into_iter().next())
 }
 
 pub async fn get_albums_from_artist(lidarr_artist_id: u32) -> Result<Vec<Album>, String> {
@@ -97,7 +97,7 @@ pub async fn get_albums_from_artist(lidarr_artist_id: u32) -> Result<Vec<Album>,
         .map_err(|e| e.to_string())?
         .json()
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
 }
 
 pub async fn get_artist(musicbrainz_id: &str) -> Result<Option<Artist>, String> {
@@ -119,7 +119,7 @@ pub async fn get_artist(musicbrainz_id: &str) -> Result<Option<Artist>, String> 
         .await
         .map_err(|e| e.to_string())?;
 
-    res.into_iter().next().ok_or(String::from("Failed to get artist : no artist"))
+    Ok(res.into_iter().next())
 }
 
 pub async fn get_tracks(album_release_id: u32) -> Result<Vec<Track>, String> {

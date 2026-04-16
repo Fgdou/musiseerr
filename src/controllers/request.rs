@@ -95,7 +95,7 @@ enum Monitoring {
 
 async fn wait_for_artist_available(id: &str) -> Result<(), String> {
     let mut last_album_count = None;
-    for _ in 0..100 {
+    for _ in 0..20 {
         let artist = apis::lidarr::get_artist(id).await?;
 
         match (artist, last_album_count) {
