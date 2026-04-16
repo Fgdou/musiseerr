@@ -81,6 +81,37 @@ pub fn search_result(result: &SearchResult) -> Markup {
                     }
                 }
             }
+        },
+        SearchResult::Albums(albums) => {
+            html!{
+                h1 { "Albums" }
+
+                table class="table align-middle" {
+                    thead class="sticky-top" {
+                        tr {
+                            th {"Name"}
+                            th {"Artist"}
+                            th {"Request"}
+                        }
+                    }
+                    tbody {
+                        @for album in albums {
+                            tr { 
+                                td {(album.name)}
+                                td {(album.artist)}
+                                td {
+                                    form hx-post="/request_album" hx-disabled-elt="find button" hx-target="this" hx-swap="outerHTML" {
+                                        button class="btn btn-secondary" type="submit" disabled[album.monitored] {
+                                            "Request"
+                                        }
+                                        input type="hidden" value=(album.id) name="album_id" {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -37,20 +37,19 @@ pub struct ReleaseGroup {
     pub primary_type: Option<String>,
     #[serde(rename = "secondary-types")]
     pub secondary_types: Option<Vec<String>>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct GetMusicResponse {
-    pub id: String,
-    pub title: String,
-    pub releases: Vec<Release>,    
     #[serde(rename = "artist-credit")]
-    pub artist_credits: Vec<ArtistCredit>,
+    pub artist_credit: Vec<ArtistCredit>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct SearchArtistResponse {
     pub artists: Vec<Artist>
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SearchAlbumResponse {
+    #[serde(rename = "release-groups")]
+    pub release_groups: Vec<ReleaseGroup>,
 }
 
 pub async fn search_music(query: &str, limit: u32) -> SearchMusicResponse {
@@ -95,6 +94,30 @@ pub async fn search_artist(query: &str, limit: u32) -> SearchArtistResponse {
     res
 }
 
+pub async fn search_album(query: &str, limit: u32) -> SearchAlbumResponse {
+    let url = format!("{}/release-group?query={}&limit={}", API_URL, query, limit);
+
+    dbg!(&url);
+
+    let res = reqwest::Client::new()
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+
+    dbg!(&res);
+    let res = serde_json::from_str(&res).unwrap();
+
+    dbg!(&res);
+
+    res
+}
+
 pub async fn get_artist(id: &str) -> Artist {
     let url = format!("{}/artist/{}?inc=release-groups", API_URL, id);
 
@@ -116,8 +139,30 @@ pub async fn get_artist(id: &str) -> Artist {
     res
 }
 
-pub async fn get_music(id: &str) -> GetMusicResponse {
+pub async fn get_music(id: &str) -> Recording {
     let url = format!("{}/recording/{}?inc=release-groups+releases+artist-credits", API_URL, id);
+
+    dbg!(&url);
+
+    let res = reqwest::Client::new()
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    dbg!(&res);
+
+    res
+}
+
+
+pub async fn get_album(id: &str) -> ReleaseGroup {
+    let url = format!("{}/release-group/{}?inc=artist-credits", API_URL, id);
 
     dbg!(&url);
 

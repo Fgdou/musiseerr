@@ -1,9 +1,9 @@
-use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Artist, Music, SearchResult, SearchType}};
+use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Album, Artist, Music, SearchResult, SearchType}};
 
 pub async fn search(query: &str, limit: u32, search_type: &SearchType) -> SearchResult {
     match search_type {
         SearchType::Music => SearchResult::Musics(search_musics(query, limit).await),
-        SearchType::Album => todo!(),
+        SearchType::Album => SearchResult::Albums(search_albums(query, limit).await),
         SearchType::Artist => SearchResult::Artists(search_artists(query, limit).await),
     }
 }
@@ -44,6 +44,15 @@ async fn artist_exist_in_lidarr(artist: &apis::musicbrainz::Artist) -> bool {
 
             albums.into_iter().all(|a| a.monitored)
         },
+    }
+}
+
+async fn album_exist_in_lidarr(album: &ReleaseGroup) -> bool {
+    let album = apis::lidarr::get_album(&album.id).await;
+
+    match album {
+        None => false,
+        Some(album) => album.monitored
     }
 }
 
@@ -101,6 +110,24 @@ async fn search_artists(query: &str, limit: u32) -> Vec<Artist> {
                 name: artist.name,
                 id: artist.id,
                 monitored: exist,
+            }
+        });
+
+    futures::future::join_all(futures).await
+}
+async fn search_albums(query: &str, limit: u32) -> Vec<Album> {
+    let results = apis::musicbrainz::search_album(query, limit).await;
+
+    let futures = results.release_groups.into_iter()
+        .map(|album| async {
+            let exist = album_exist_in_lidarr(&album).await;
+            Album {
+                id: album.id,
+                monitored: exist,
+                artist_id: album.artist_credit.first().unwrap().artist.id.clone(),
+                name: album.title,
+                artist: album.artist_credit.first().unwrap().artist.name.clone(),
+                album_type: album.primary_type.unwrap_or_default(),
             }
         });
 

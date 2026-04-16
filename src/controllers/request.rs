@@ -4,9 +4,9 @@ use crate::apis::{self, lidarr::{AddOptions, ArtistRequest}};
 
 pub async fn music(id: &str) -> Result<(), String> {
     let mbz_music = apis::musicbrainz::get_music(id).await;
-    let mbz_album = mbz_music.releases.first().unwrap();
+    let mbz_album = mbz_music.releases.as_ref().unwrap().first().unwrap();
     let mbz_album_id = &mbz_album.release_group.id;
-    let mbz_artist = &mbz_music.artist_credits.first().unwrap().artist;
+    let mbz_artist = &mbz_music.artist_credit.first().unwrap().artist;
     let mbz_artist_id = &mbz_artist.id;
     
 
@@ -50,6 +50,30 @@ pub async fn artist(id: &str) -> Result<(), String> {
         },
         None => {
             request_artist(id, &mbz_artist.name, Monitoring::All).await?;
+            Ok(())
+        }
+    }
+}
+
+pub async fn album(id: &str) -> Result<(), String> {
+    let mbz_album = apis::musicbrainz::get_album(id).await;
+    let artist = &mbz_album.artist_credit.first().unwrap().artist;
+    let lidarr_album = apis::lidarr::get_album(id).await;
+    let lidarr_artist = apis::lidarr::get_artist(&artist.id).await;
+
+    match (lidarr_artist, lidarr_album) {
+        (None, _) => {
+            request_artist(&artist.id, &artist.name, Monitoring::None).await?;
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            let lidarr_album = apis::lidarr::get_album(&mbz_album.id).await.ok_or::<String>("Failed to get albums of new artist".into())?;
+
+            request_album(lidarr_album.id).await?;
+
+            Ok(())
+        },
+        (Some(_), None) => Err("Album not found in artist".into()),
+        (Some(artist), Some(album)) => {
+            request_album(album.id).await?;
             Ok(())
         }
     }

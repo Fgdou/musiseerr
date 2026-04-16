@@ -4,7 +4,7 @@ use maud::{Markup, html};
 use tokio::signal;
 use tower_http::services::ServeDir;
 
-use crate::objects::{ArtistRequest, MusicRequest, SearchParameters};
+use crate::objects::{AlbumRequest, ArtistRequest, MusicRequest, SearchParameters};
 
 mod controllers;
 mod views;
@@ -23,6 +23,7 @@ async fn main() {
         .route("/", get(|| async {Redirect::permanent("/search")}))
         .route("/search", get(search_controller))
         .route("/request_music", post(request_music_controller))
+        .route("/request_album", post(request_album_controller))
         .route("/request_artist", post(request_artist_controller))
         .nest_service("/static", ServeDir::new("./static/"));
 
@@ -65,6 +66,15 @@ async fn request_music_controller(req: Form<MusicRequest>) -> Response {
 
 async fn request_artist_controller(req: Form<ArtistRequest>) -> Response {
     let res = controllers::request::artist(&req.artist_id).await;
+
+    match res {
+        Err(e) => Response::builder().status(400).body(e.into()).unwrap(),
+        _ => Response::builder().status(200).body("OK".into()).unwrap()
+    }
+}
+
+async fn request_album_controller(req: Form<AlbumRequest>) -> Response {
+    let res = controllers::request::album(&req.album_id).await;
 
     match res {
         Err(e) => Response::builder().status(400).body(e.into()).unwrap(),
