@@ -5,6 +5,7 @@ use std::error::Error;
 
 use axum::{Form, Router, extract::Query, http::HeaderMap, response::{Redirect, Response}, routing::{get, post}};
 use dotenv::dotenv;
+use futures::TryFutureExt;
 use maud::{Markup, html};
 use tokio::signal;
 use tower_http::services::ServeDir;
@@ -19,7 +20,9 @@ mod apis;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
-    println!("Hello, world!");
+    println!("Starting MusiSeerr");
+
+    apis::lidarr::verify_connection().await?;
 
     let app = Router::new()
         .route("/health", get(async || {
