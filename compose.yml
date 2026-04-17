@@ -1,6 +1,6 @@
 services:
   musiseerr:
-    image: ghcr.io/fgdou/musiseerr:main
+    image: ghcr.io/fgdou/musiseerr:latest
     environment:
       - LIDARR_API_KEY=
       - LIDARR_URL=http://lidarr:8686

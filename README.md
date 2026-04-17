@@ -2,7 +2,9 @@
 
 > ⚠ This application is still in beta and under development
 
-MusiSeerr allow any user to request for an artist/album/music to be added automatically to lidarr.
+MusiSeerr allows any user to request for an artist/album/music to be added automatically to lidarr.
+
+Automate your music monitoring without giving users permissions over lidarr.
 
 This is an attempt to create a JellySeer / Overseer but for music.
 
@@ -15,3 +17,10 @@ See the [docker compose file](./compose.yml). Don't forget to setup your lidarr 
 ```sh
 docker compose up -d
 ```
+
+## How it works
+1. user request for a music
+2. musiseerr search it on MusicBrainz
+3. musiseerr sees if the related artist and album are monitored in lidarr
+4. user request the music
+5. musiseerr monitors the album
