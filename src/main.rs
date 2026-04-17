@@ -3,11 +3,12 @@
 
 use std::error::Error;
 
-use axum::{Form, Router, extract::Query, http::HeaderMap, response::{Redirect, Response}, routing::{get, post}};
+use axum::{Form, Router, extract::Query, http::HeaderMap, response::{IntoResponse, Redirect, Response}, routing::{get, post}};
 use dotenv::dotenv;
 use env_logger::Env;
 use log::{error, info};
 use maud::{Markup, html};
+use reqwest::StatusCode;
 use tokio::signal;
 use tower_http::services::ServeDir;
 
@@ -70,31 +71,19 @@ async fn shutdown_signal() {
     }
 }
 
-async fn request_music_controller(req: Form<MusicRequest>) -> Result<Response, String> {
-    let res = controllers::request::music(&req.music_id).await;
-
-    match res {
-        Err(e) => Response::builder().status(400).body(e.into()).map_err(|e| e.to_string()),
-        _ => Response::builder().status(200).body("OK".into()).map_err(|e| e.to_string())
-    }
+async fn request_music_controller(req: Form<MusicRequest>) -> Result<String, BadRequest> {
+    controllers::request::music(&req.music_id).await?;
+    Ok("OK".into())
 }
 
-async fn request_artist_controller(req: Form<ArtistRequest>) -> Result<Response, String> {
-    let res = controllers::request::artist(&req.artist_id).await;
-
-    match res {
-        Err(e) => Response::builder().status(400).body(e.into()).map_err(|e| e.to_string()),
-        _ => Response::builder().status(200).body("OK".into()).map_err(|e| e.to_string())
-    }
+async fn request_artist_controller(req: Form<ArtistRequest>) -> Result<String, BadRequest> {
+    controllers::request::artist(&req.artist_id).await?;
+    Ok("OK".into())
 }
 
-async fn request_album_controller(req: Form<AlbumRequest>) -> Result<Response, String> {
-    let res = controllers::request::album(&req.album_id).await;
-
-    match res {
-        Err(e) => Response::builder().status(400).body(e.into()).map_err(|e| e.to_string()),
-        _ => Response::builder().status(200).body("OK".into()).map_err(|e| e.to_string())
-    }
+async fn request_album_controller(req: Form<AlbumRequest>) -> Result<String, BadRequest> {
+    controllers::request::album(&req.album_id).await?;
+    Ok("OK".into())
 }
 
 impl SearchParameters {
@@ -124,7 +113,22 @@ impl SearchParametersFixed {
     }
 }
 
-async fn search_controller(search_params: Query<SearchParameters>, headers: HeaderMap) -> Result<Markup, String> {
+struct BadRequest(String);
+impl IntoResponse for BadRequest {
+    fn into_response(self) -> Response {
+        error!("Error during request: {}", &self.0);
+        (StatusCode::BAD_REQUEST, self.0).into_response()
+    }
+}
+
+impl From<String> for BadRequest {
+    fn from(value: String) -> Self {
+        BadRequest(value)
+    }
+}
+
+
+async fn search_controller(search_params: Query<SearchParameters>, headers: HeaderMap) -> Result<Markup, BadRequest> {
     let htmx = headers.get("HX-Request").is_some();
 
     let params = search_params.get();
