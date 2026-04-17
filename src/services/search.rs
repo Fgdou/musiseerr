@@ -1,0 +1,174 @@
+use crate::{apis::{self, musicbrainz::{Recording, ReleaseGroup}}, objects::{Album, Artist, Music, SearchParametersFixed, SearchResult, SearchType}};
+
+pub async fn search(params: &SearchParametersFixed) -> Result<SearchResult, String> {
+    Ok(match params.search_type {
+        SearchType::Music => SearchResult::Musics(search_musics(params).await?),
+        SearchType::Album => SearchResult::Albums(search_albums(params).await?),
+        SearchType::Artist => SearchResult::Artists(search_artists(params).await?),
+    })
+}
+
+async fn recording_exist_in_lidarr(recording: &Recording) -> Result<bool, String> {
+    let release = if let Some(releases) = &recording.releases && let Some(release) = releases.first() {
+        release
+    } else {
+        return Ok(false)
+    };
+    
+    let album_id = &release.release_group.id;
+    let album = apis::lidarr::get_album(album_id).await?;
+
+    let album = if let Some(album) = album {
+        album
+    } else {
+        return Ok(false)
+    };
+
+    if album.monitored {
+        return Ok(true);
+    }
+
+    let futures = album.releases.iter()
+        .map(async |release| apis::lidarr::get_tracks(release.id).await);
+    
+    let tracks = futures::future::try_join_all(futures).await?;
+
+    Ok(tracks.into_iter().flatten().any(|track| track.foreign_recording_id == recording.id && track.has_file))
+}
+
+async fn artist_exist_in_lidarr(artist: &apis::musicbrainz::Artist) -> Result<bool, String> {
+    let artist = apis::lidarr::get_artist(&artist.id).await?;
+    
+    match artist {
+        None => Ok(false),
+        Some(artist) if !artist.monitored => Ok(false),
+        Some(artist) => {
+            let albums = apis::lidarr::get_albums_from_artist(artist.id).await?;
+
+            Ok(albums.into_iter().all(|a| a.monitored))
+        },
+    }
+}
+
+async fn album_exist_in_lidarr(album: &ReleaseGroup) -> Result<bool, String> {
+    let album = apis::lidarr::get_album(&album.id).await?;
+
+    Ok(match album {
+        None => false,
+        Some(album) => album.monitored
+    })
+}
+
+fn is_live(album: &ReleaseGroup) -> bool {
+    let secondary_types_contains_live = match album.secondary_types.as_ref() {
+        None => false,
+        Some(list) => list.contains(&"Live".into()),
+    };
+
+    !secondary_types_contains_live
+}
+
+async fn search_musics(params: &SearchParametersFixed) -> Result<Vec<Music>, String> {
+    let result = apis::musicbrainz::search_music(&params.query, params.max, params.get_offset()).await?;
+
+    let futures = result.recordings
+        .into_iter()
+        .filter_map(|mut recording| {
+            let releases = recording.releases?;
+
+            let new_releases: Vec<_> = releases.into_iter().filter(|release| {
+                is_live(&release.release_group)
+            }).collect();
+
+            let new_is_empty = new_releases.is_empty();
+
+            recording.releases = Some(new_releases);
+
+            if new_is_empty {
+                None
+            } else {
+                Some(recording)
+            }
+        })
+        .map(|recording| async {
+            let artist = match &recording.artist_credit.first() {
+                None => return Ok::<Option<Music>, String>(None),
+                Some(artist) => &artist.artist
+            };
+            let exist = artist_exist_in_lidarr(artist).await? && recording_exist_in_lidarr(&recording).await?;
+            let album = match recording.releases {
+                None => return Ok(None),
+                Some(releases) => match releases.into_iter().next() {
+                    None => return Ok(None),
+                    Some(r) => r.release_group
+                }
+            };
+            Ok(Some(Music {
+                album_types: get_album_types(&album),
+                title: recording.title,
+                artist: artist.name.clone(),
+                artist_id: artist.id.clone(),
+                album_id: album.id,
+                album: album.title,
+                id: recording.id,
+                monitored: exist,
+            }))
+        });
+
+    Ok(futures::future::try_join_all(futures).await?
+        .into_iter()
+        .flatten()
+        .collect())
+}
+async fn search_artists(params: &SearchParametersFixed) -> Result<Vec<Artist>, String> {
+    let result = apis::musicbrainz::search_artist(&params.query, params.max, params.get_offset()).await?;
+
+    let futures = result.artists.into_iter()
+        .map(|artist| async {
+            let exist = artist_exist_in_lidarr(&artist).await?;
+            Ok(Artist {
+                name: artist.name,
+                id: artist.id,
+                monitored: exist,
+            })
+        });
+
+    futures::future::try_join_all(futures).await
+}
+fn get_album_types(album: &ReleaseGroup) -> Vec<String> {
+    let mut primary = album.primary_type.as_ref().map(|t| vec!(t.clone())).unwrap_or_default();
+    let mut secondary = album.secondary_types.as_ref().map(|e| e.clone()).unwrap_or_default();
+
+    primary.append(&mut secondary);
+
+    primary
+}
+async fn search_albums(params: &SearchParametersFixed) -> Result<Vec<Album>, String> {
+    let results = apis::musicbrainz::search_album(&params.query, params.max, params.get_offset()).await?;
+
+    let futures = results.release_groups.into_iter()
+        .filter(|album| is_live(&album))
+        .map(|album| async {
+            let exist = album_exist_in_lidarr(&album).await?;
+            let artist = match &album.artist_credit {
+                None => return Ok::<Option<Album>, String>(None),
+                Some(artist) => match artist.first() {
+                    None => return Ok(None),
+                    Some(artist) => &artist.artist,
+                }
+            };
+            Ok(Some(Album {
+                album_types: get_album_types(&album),
+                id: album.id,
+                monitored: exist,
+                artist_id: artist.id.clone(),
+                name: album.title,
+                artist: artist.name.clone(),
+            }))
+        });
+
+    Ok(futures::future::try_join_all(futures).await?
+        .into_iter()
+        .flatten()
+        .collect())
+}

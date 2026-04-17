@@ -14,10 +14,11 @@ use tower_http::services::ServeDir;
 
 use crate::objects::{AlbumRequest, ArtistRequest, MusicRequest, SearchParameters, SearchParametersFixed};
 
-mod controllers;
+mod services;
 mod views;
 mod objects;
 mod apis;
+mod controllers;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -32,15 +33,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
             "OK"
         }))
         .route("/", get(|| async {Redirect::permanent("/search")}))
-        .route("/search", get(search_controller))
-        .route("/request_music", post(request_music_controller))
-        .route("/request_album", post(request_album_controller))
-        .route("/request_artist", post(request_artist_controller))
+        .route("/search", get(controllers::search::search_controller))
+        .route("/request_music", post(controllers::request::request_music_controller))
+        .route("/request_album", post(controllers::request::request_album_controller))
+        .route("/request_artist", post(controllers::request::request_artist_controller))
         .nest_service("/static", ServeDir::new("./static/"));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.map_err(Box::new)?;
 
-    info!("Listenning on 0.0.0.0:3000");
+    info!("Listenning on http://0.0.0.0:3000");
     axum::serve(listener, app).with_graceful_shutdown(shutdown_signal()).await.map_err(Box::new)?;
 
     Ok(())
@@ -71,47 +72,6 @@ async fn shutdown_signal() {
     }
 }
 
-async fn request_music_controller(req: Form<MusicRequest>) -> Result<String, BadRequest> {
-    controllers::request::music(&req.music_id).await?;
-    Ok("OK".into())
-}
-
-async fn request_artist_controller(req: Form<ArtistRequest>) -> Result<String, BadRequest> {
-    controllers::request::artist(&req.artist_id).await?;
-    Ok("OK".into())
-}
-
-async fn request_album_controller(req: Form<AlbumRequest>) -> Result<String, BadRequest> {
-    controllers::request::album(&req.album_id).await?;
-    Ok("OK".into())
-}
-
-impl SearchParameters {
-    fn get(&self) -> Option<SearchParametersFixed> {
-        match self {
-            SearchParameters{
-                query: Some(s),
-                max: m,
-                page: p,
-                search_type: Some(search_type),
-            } => {
-                Some(SearchParametersFixed {
-                    query: s.clone(),
-                    max: m.unwrap_or(50).min(100),
-                    page: p.unwrap_or(0).min(500),
-                    search_type: search_type.clone(),
-                })
-            },
-            _ => None,
-        }
-    }
-}
-
-impl SearchParametersFixed {
-    fn get_offset(&self) -> u32 {
-        self.page*self.max
-    }
-}
 
 struct BadRequest(String);
 impl IntoResponse for BadRequest {
@@ -125,37 +85,4 @@ impl From<String> for BadRequest {
     fn from(value: String) -> Self {
         BadRequest(value)
     }
-}
-
-
-async fn search_controller(search_params: Query<SearchParameters>, headers: HeaderMap) -> Result<Markup, BadRequest> {
-    let htmx = headers.get("HX-Request").is_some();
-
-    let params = search_params.get();
-
-    let search_bar = views::search::search_bar(&params);
-
-    let search = match params {
-        Some(p) => Some(controllers::search::search(&p).await?),
-        None => None,
-    };
-
-    if htmx && let Some(search) = search {
-        return Ok(views::search::search_result(&search));
-    } 
-    
-    let content = html!(
-        div {
-            (search_bar)
-
-            div id="search-content" {
-                @match search {
-                    None => (html!{}),
-                    Some(search) => (views::search::search_result(&search))
-                }
-            }
-        }
-    );
-
-    Ok(views::header::template(content))
 }
