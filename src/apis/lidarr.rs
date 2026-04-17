@@ -1,6 +1,7 @@
 use std::env;
 
 use chrono::{DateTime, Utc};
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
@@ -63,7 +64,7 @@ pub async fn get_album(musicbrainz_id: &str) -> Result<Option<Album>, String> {
     let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/album?foreignAlbumId={}", env_url, musicbrainz_id);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     let res: Vec<_> = reqwest::Client::new()
         .get(url)
@@ -85,7 +86,7 @@ pub async fn get_albums_from_artist(lidarr_artist_id: u32) -> Result<Vec<Album>,
     let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/album?artistId={}", env_url, lidarr_artist_id);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     reqwest::Client::new()
         .get(url)
@@ -100,12 +101,39 @@ pub async fn get_albums_from_artist(lidarr_artist_id: u32) -> Result<Vec<Album>,
         .map_err(|e| e.to_string())
 }
 
+pub async fn verify_connection() -> Result<(), String> {
+    let env_url = env::var("LIDARR_URL").map_err(|_| String::from("LIDARR_URL env is not set"))?;
+    let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
+    let url = format!("{}/api/v1/artist", env_url);
+
+    debug!("Request: {}", &url);
+
+    let res = reqwest::Client::new()
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", "Musiseer/1.0.0 { fabigoardou@gmail.com }")
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|e| if e.is_connect() || e.is_timeout() {
+            "Failed to reach LIDARR_URL".into()
+        } else {
+            e.to_string()
+        })?;
+
+    if res.status().as_u16() == 401 {
+        return Err("LIDARR_API_KEY is not correct".into())
+    }
+
+    Ok(())
+}
+
 pub async fn get_artist(musicbrainz_id: &str) -> Result<Option<Artist>, String> {
     let env_url = env::var("LIDARR_URL").map_err(|_| String::from("LIDARR_URL env is not set"))?;
     let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/artist?mbId={}", env_url, musicbrainz_id);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     let res: Vec<_> = reqwest::Client::new()
         .get(url)
@@ -127,7 +155,7 @@ pub async fn get_tracks(album_release_id: u32) -> Result<Vec<Track>, String> {
     let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/track?albumReleaseId={}", env_url, album_release_id);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     reqwest::Client::new()
         .get(url)
@@ -172,7 +200,7 @@ pub async fn add_artist(artist: ArtistRequest) -> Result<(), String> {
     let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/artist", env_url);
 
-    dbg!(&url, &artist);
+    debug!("Request: {}", &url);
 
     let res = reqwest::Client::new()
         .post(url)
@@ -209,7 +237,7 @@ pub async fn monitor_albums(lidarr_album_id: Vec<u32>) -> Result<(), String> {
         monitored: true,
     };
 
-    dbg!(&url, &request);
+    debug!("Request: {}", &url);
 
     let res = reqwest::Client::new()
         .put(url)
@@ -244,7 +272,7 @@ pub async fn get_defaults() -> Result<Vec<DefaultsResponse>, String> {
     let token = env::var("LIDARR_API_KEY").map_err(|_| String::from("LIDARR_API_KEY env is not set"))?;
     let url = format!("{}/api/v1/rootfolder", env_url);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     reqwest::Client::new()
         .get(url)

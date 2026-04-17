@@ -1,8 +1,11 @@
 use std::time::Duration;
 
+use log::debug;
+
 use crate::apis::{self, lidarr::{AddOptions, Artist, ArtistRequest}};
 
 pub async fn music(id: &str) -> Result<(), String> {
+    debug!("Requesting music {}", id);
     let mbz_music = apis::musicbrainz::get_music(id).await?;
     let mbz_album = mbz_music.releases.as_ref()
         .ok_or(String::from("Failed to get release of album"))?
@@ -41,6 +44,7 @@ pub async fn music(id: &str) -> Result<(), String> {
 }
 
 pub async fn artist(id: &str) -> Result<(), String> {
+    debug!("Requesting artist {}", id);
     let mbz_artist = apis::musicbrainz::get_artist(id).await?;
     let lidarr_artist = apis::lidarr::get_artist(id).await?;
 
@@ -61,6 +65,7 @@ pub async fn artist(id: &str) -> Result<(), String> {
 }
 
 pub async fn album(id: &str) -> Result<(), String> {
+    debug!("Requesting album {}", id);
     let mbz_album = apis::musicbrainz::get_album(id).await?;
     let artist = &mbz_album.artist_credit.as_ref()
         .ok_or(String::from("Failed to get artist from album"))?
