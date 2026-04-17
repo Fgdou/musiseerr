@@ -4,7 +4,7 @@
 
 MusiSeerr allow any user to request for an artist/album/music to be added automatically to lidarr.
 
-This is an attempt of creating a JellySeer / Overseer but for music.
+This is an attempt to create a JellySeer / Overseer but for music.
 
 ![MusiSeer Screenshot](docs/screenshot.png)
 
