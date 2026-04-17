@@ -2,7 +2,9 @@
 
 > ⚠ This application is still in beta and under development
 
-MusiSeerr allow any user to request for an artist/album/music to be added automatically to lidarr.
+MusiSeerr allows any user to request for an artist/album/music to be added automatically to lidarr.
+
+Automate your music monitoring without giving users permissions over lidarr.
 
 This is an attempt to create a JellySeer / Overseer but for music.
 
