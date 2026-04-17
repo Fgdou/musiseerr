@@ -1,3 +1,4 @@
+use log::debug;
 use serde::{self, Deserialize};
 
 const API_URL: &str = "https://musicbrainz.org/ws/2";
@@ -55,7 +56,7 @@ pub struct SearchAlbumResponse {
 pub async fn search_music(query: &str, limit: u32, offset: u32) -> Result<SearchMusicResponse, String> {
     let url = format!("{}/recording?query={}&limit={}&offset={}", API_URL, query, limit, offset);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     reqwest::Client::new()
         .get(url)
@@ -72,7 +73,7 @@ pub async fn search_music(query: &str, limit: u32, offset: u32) -> Result<Search
 pub async fn search_artist(query: &str, limit: u32, offset: u32) -> Result<SearchArtistResponse, String> {
     let url = format!("{}/artist?query={}&limit={}&offset={}", API_URL, query, limit, offset);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     reqwest::Client::new()
         .get(url)
@@ -89,7 +90,7 @@ pub async fn search_artist(query: &str, limit: u32, offset: u32) -> Result<Searc
 pub async fn search_album(query: &str, limit: u32, offset: u32) -> Result<SearchAlbumResponse, String> {
     let url = format!("{}/release-group?query={}&limit={}&offset={}", API_URL, query, limit, offset);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     reqwest::Client::new()
         .get(url)
@@ -106,7 +107,7 @@ pub async fn search_album(query: &str, limit: u32, offset: u32) -> Result<Search
 pub async fn get_artist(id: &str) -> Result<Artist, String> {
     let url = format!("{}/artist/{}?inc=release-groups", API_URL, id);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     reqwest::Client::new()
         .get(url)
@@ -123,7 +124,7 @@ pub async fn get_artist(id: &str) -> Result<Artist, String> {
 pub async fn get_music(id: &str) -> Result<Recording, String> {
     let url = format!("{}/recording/{}?inc=release-groups+releases+artist-credits", API_URL, id);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     reqwest::Client::new()
         .get(url)
@@ -141,7 +142,7 @@ pub async fn get_music(id: &str) -> Result<Recording, String> {
 pub async fn get_album(id: &str) -> Result<ReleaseGroup, String> {
     let url = format!("{}/release-group/{}?inc=artist-credits", API_URL, id);
 
-    dbg!(&url);
+    debug!("Request: {}", &url);
 
     reqwest::Client::new()
         .get(url)

@@ -5,7 +5,8 @@ use std::error::Error;
 
 use axum::{Form, Router, extract::Query, http::HeaderMap, response::{Redirect, Response}, routing::{get, post}};
 use dotenv::dotenv;
-use futures::TryFutureExt;
+use env_logger::Env;
+use log::{error, info};
 use maud::{Markup, html};
 use tokio::signal;
 use tower_http::services::ServeDir;
@@ -20,8 +21,9 @@ mod apis;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
-    println!("Starting MusiSeerr");
-
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    info!("Starting MusiSeerr");
+    info!("Checking environment variables");
     apis::lidarr::verify_connection().await?;
 
     let app = Router::new()
@@ -36,6 +38,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .nest_service("/static", ServeDir::new("./static/"));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.map_err(Box::new)?;
+
+    info!("Listenning on 0.0.0.0:3000");
     axum::serve(listener, app).with_graceful_shutdown(shutdown_signal()).await.map_err(Box::new)?;
 
     Ok(())

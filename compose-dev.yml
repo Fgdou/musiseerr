@@ -8,6 +8,7 @@ services:
     environment:
       LIDARR_API_KEY: ${LIDARR_API_KEY}
       LIDARR_URL: ${LIDARR_URL}
+      RUST_LOG: debug
     restart: unless-stopped
   lidarr:
     image: ghcr.io/hotio/lidarr:latest
