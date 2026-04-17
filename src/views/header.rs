@@ -8,11 +8,15 @@ pub fn template(page: Markup) -> Markup {
             meta name="viewport" content="width=device-width, initial-scale=1" {}
         }
         body {
-            h1 {
+            h1 class="text-center" {
                 "MusiSeerr"
             }
 
-            div class="container" {
+            div class="text-center" {
+                "Request any music / album / artist to be monitored"
+            }
+
+            div class="container mt-5" {
                 (page)
             }
 
